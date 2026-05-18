@@ -92,4 +92,18 @@ describe('robustez', () => {
     const r = parseFranzoniErp(`Total 1.234,56\n`);
     expect(r.valor_total).toBe(1234.56);
   });
+
+  it('texto wall-of-text (estilo unpdf) — normaliza quebras', () => {
+    // Mesmo conteúdo do fixture mas sem quebras de linha
+    const wall = fixture.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
+    const r = parseFranzoniErp(wall);
+    expect(r.documento_erp).toBe('L4077');
+    expect(r.cliente.nome).toBe('START SERVICE LTDA');
+    expect(r.cliente.bairro).toBe('Forquilhas');
+    // bairro NÃO pode conter texto da tabela de itens
+    expect(r.cliente.bairro?.length).toBeLessThan(50);
+    expect(r.valor_total).toBe(16.79);
+    expect(r.pontos_retirada[0].itens).toHaveLength(1);
+    expect(r.pontos_retirada[0].itens[0].codigo).toBe('5005');
+  });
 });

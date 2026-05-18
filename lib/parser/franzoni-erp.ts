@@ -90,12 +90,14 @@ const RX = {
   // fallback: pega o "N. L4077" do cabeçalho se a linha "Número do documento" sumir
   documentoCab: /PEDIDO\s+DE\s+VENDA\s*-\s*N\.?\s*([A-Z0-9.\-]+)/i,
   cliente:    /Cliente\s+(\d+)\s*-\s*([^\n(]+?)\s*\(\s*([\d./-]+)\s*\)/i,
-  endereco:   /Endere[cç]o\s*:\s*([^\n]+)/i,
-  cep:        /CEP\s*:?\s*(\d{5}-?\d{3})\s*-\s*([^\n-]+?)\s*-\s*([A-Z]{2})/i,
+  // Endereço termina em CEP, Telefone, Produto ou fim — quebra sem precisar de \n
+  // Usa [\s\S] em vez de . pra cobrir multilinha sem depender da flag /s (es2018+)
+  endereco:   /Endere[cç]o\s*:\s*([\s\S]+?)(?=\s*(?:CEP\s*:|Telefone\s*:|Produto\b|$))/i,
+  cep:        /CEP\s*:?\s*(\d{5}-?\d{3})\s*-\s*([^-\n]+?)\s*-\s*([A-Z]{2})\b/i,
   telefone:   /Telefone\s*:?\s*(\(?\d{2}\)?\s*\d{4,5}[-\s]?\d{4})/i,
-  total:      /(?:^|\n)\s*Total\s+([\d.]+,\d{2})\s*(?:\n|$)/i,
-  formaPagto: /Forma\s+de\s+Pagamento\s*:?\s*([^\n]+)/i,
-  observacao: /Observa[cç][aã]o\s*:?\s*([^\n]+)/i,
+  total:      /(?:^|\s)Total\s+([\d.]+,\d{2})(?=\s+Forma\s+de\s+Pagamento|\s*$|\s*\n)/i,
+  formaPagto: /Forma\s+de\s+Pagamento\s*:?\s*([\s\S]+?)(?=\s*(?:Observa[cç][aã]o\s*:|É\s+vedada|$))/i,
+  observacao: /Observa[cç][aã]o\s*:?\s*([\s\S]+?)(?=\s*(?:É\s+vedada|$))/i,
   // item: cód + descrição + " - " + qtd + unidade + 3 valores monetários
   item:       /^(\d{3,})\s+(.+?)\s+-\s+(\d+(?:[.,]\d+)?)\s+([A-Z]{1,3})\s+([\d.]+,\d{2})\s+([\d.]+,\d{2})\s+([\d.]+,\d{2})\s*$/gm,
   refDiversos:/^\s*(Diversos\s*\([^)]*\))\s*$/im,
@@ -206,8 +208,45 @@ function parseFormaPagamento(text: string): { forma_pagamento?: string; parcelas
 // parser principal
 // ---------------------------------------------------------------------------
 
+/**
+ * unpdf devolve a página inteira numa "wall of text" sem quebras de linha.
+ * pdf-parse devolvia com quebras. Esta normalização insere \n antes de
+ * cabeçalhos conhecidos pra os regex line-based continuarem funcionando.
+ */
+function normalizeBreaks(text: string): string {
+  const markers = [
+    'Data de emissão',
+    'Data de entrega',
+    'Número do documento',
+    'Identificação do destinatário',
+    'Cliente ',
+    'Endereço:',
+    'CEP:',
+    'Telefone:',
+    'Produto Quantidade',
+    'Meios de pagamento',
+    'Forma de Pagamento:',
+    'Observação:',
+    'É vedada',
+  ];
+  let out = text;
+  for (const m of markers) {
+    out = out.split(m).join(`\n${m}`);
+  }
+  // Cabeçalho da tabela e primeiro item ficam grudados em wall-of-text;
+  // insere \n após o "Total" do cabeçalho (último Total antes do código)
+  out = out.replace(/(Produto\s+Quantidade[^\n]*?Total)\s+(?=\d{3,}\s+\S)/g, '$1\n');
+  // Entre itens: <num>,<dd> seguido de espaço + código (3+ dígitos)
+  out = out.replace(/(\d+[.,]\d{2})\s+(?=\d{3,}\s+\S)/g, '$1\n');
+  // "Diversos (Ref. ...)" sempre numa linha própria
+  out = out.replace(/\s+(Diversos\s*\(\s*Ref\.?)/g, '\n$1');
+  // "Total <valor>" final (após itens) numa linha própria
+  out = out.replace(/\s+(Total\s+\d+[.,]\d{2})/g, '\n$1');
+  return out;
+}
+
 export function parseFranzoniErp(text: string): PedidoParsed {
-  const normalized = text.replace(/ /g, ' '); // NBSP → space
+  const normalized = normalizeBreaks(text.replace(/ /g, ' '));
 
   // empresa emissora: primeira linha não-vazia
   const empresa_emissora = normalized

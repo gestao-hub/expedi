@@ -101,7 +101,12 @@ export function PedidosList({
         { event: '*', schema: 'public', table: 'pedidos' },
         (payload) => {
           if (payload.eventType === 'INSERT') {
-            setPedidos((prev) => [payload.new as Pedido, ...prev]);
+            const novo = payload.new as Pedido;
+            setPedidos((prev) => {
+              // Dedup por id (initial fetch + realtime podem coincidir num race)
+              if (prev.some((p) => p.id === novo.id)) return prev;
+              return [novo, ...prev];
+            });
             if (mode === 'logistica' && (payload.new as Pedido).status === 'pendente') {
               toast(`Novo pedido na fila: ${(payload.new as Pedido).cliente_nome}`);
             }
