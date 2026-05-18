@@ -37,7 +37,7 @@ export default function NovoPedidoPage() {
         description="Faça upload do PDF emitido pelo ERP. Os dados serão extraídos automaticamente."
       />
 
-      <div className="max-w-2xl">
+      <div className="max-w-2xl mx-auto w-full">
         <ContentCard
           header={<ContentCardTitle>Importar PDF</ContentCardTitle>}
           className="space-y-6"
