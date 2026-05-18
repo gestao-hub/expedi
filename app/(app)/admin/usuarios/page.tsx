@@ -1,7 +1,8 @@
 import { redirect } from 'next/navigation';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { PageHeader } from '@/components/layout/page-header';
+import { ContentCard } from '@/components/layout/content-card';
 import {
   Table,
   TableBody,
@@ -31,13 +32,16 @@ function initials(name: string) {
 export default async function UsuariosPage() {
   const supabase = await createClient();
 
-  // gate por role (camada UX — RLS é a real)
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
-  const { data: me } = await supabase.from('profiles').select('role').eq('id', user.id).single();
+  const { data: me } = await supabase
+    .from('profiles')
+    .select('role')
+    .eq('id', user.id)
+    .single();
   if (me?.role !== 'admin') redirect('/vendas');
 
   const { data: profiles, error } = await supabase
@@ -49,68 +53,59 @@ export default async function UsuariosPage() {
   const list = (profiles ?? []) as Profile[];
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto">
-      <div>
-        <h2 className="text-2xl font-semibold">Usuários</h2>
-        <p className="text-sm text-muted-foreground">
-          {list.length} usuário{list.length === 1 ? '' : 's'} ativos. Para criar novos,
-          rode <code className="text-xs bg-muted px-1 py-0.5 rounded">scripts/seed-users.ts</code>
-          {' '}ou crie via Supabase Dashboard → Authentication.
-        </p>
-      </div>
+    <>
+      <PageHeader
+        title="Usuários"
+        description={`${list.length} usuário${list.length === 1 ? '' : 's'} ativos. Para criar novos, rode scripts/seed-users.ts ou crie via Supabase Dashboard.`}
+      />
 
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base">Cadastros</CardTitle>
-        </CardHeader>
-        <CardContent className="p-0">
-          {error ? (
-            <p className="p-6 text-sm text-destructive">{error.message}</p>
-          ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nome</TableHead>
-                  <TableHead>E-mail</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Criado em</TableHead>
+      <ContentCard variant="flush">
+        {error ? (
+          <p className="p-6 text-sm text-destructive">{error.message}</p>
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow className="hover:bg-transparent">
+                <TableHead className="pl-5">Nome</TableHead>
+                <TableHead>E-mail</TableHead>
+                <TableHead>Role</TableHead>
+                <TableHead className="pr-5">Criado em</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {list.map((p) => (
+                <TableRow key={p.id} className="hover:bg-franzoni-orange/5">
+                  <TableCell className="pl-5">
+                    <div className="flex items-center gap-3">
+                      <Avatar className="h-8 w-8 bg-franzoni-orange/15 ring-1 ring-franzoni-orange/25">
+                        <AvatarFallback className="bg-transparent text-xs font-semibold text-franzoni-orange-700">
+                          {initials(p.full_name || p.email)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="font-medium">{p.full_name || '—'}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell className="text-muted-foreground font-mono text-xs">
+                    {p.email}
+                  </TableCell>
+                  <TableCell>
+                    <RoleSelect
+                      userId={p.id}
+                      currentRole={p.role}
+                      disabled={p.id === user.id}
+                    />
+                  </TableCell>
+                  <TableCell className="text-sm text-muted-foreground pr-5">
+                    {p.created_at
+                      ? format(new Date(p.created_at), "dd 'de' MMM yyyy", { locale: ptBR })
+                      : '—'}
+                  </TableCell>
                 </TableRow>
-              </TableHeader>
-              <TableBody>
-                {list.map((p) => (
-                  <TableRow key={p.id}>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <Avatar className="h-8 w-8 bg-franzoni-orange/15 text-franzoni-orange-700">
-                          <AvatarFallback className="bg-transparent text-xs font-medium">
-                            {initials(p.full_name || p.email)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <span className="font-medium">{p.full_name || '—'}</span>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground font-mono text-xs">
-                      {p.email}
-                    </TableCell>
-                    <TableCell>
-                      <RoleSelect
-                        userId={p.id}
-                        currentRole={p.role}
-                        disabled={p.id === user.id /* não permite editar o próprio */}
-                      />
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {p.created_at
-                        ? format(new Date(p.created_at), "dd 'de' MMM yyyy", { locale: ptBR })
-                        : '—'}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+      </ContentCard>
+    </>
   );
 }

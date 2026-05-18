@@ -5,11 +5,10 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Search, Plus } from 'lucide-react';
+import { Search, Plus, Inbox } from 'lucide-react';
 import { toast } from 'sonner';
 import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { Card, CardContent } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -26,6 +25,7 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
+import { ContentCard } from '@/components/layout/content-card';
 import { StatusBadge } from '@/components/status-badge';
 import { createClient } from '@/lib/supabase/client';
 import type { Pedido, PedidoStatus } from '@/lib/types';
@@ -59,7 +59,6 @@ export function PedidosList({
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState<PedidoStatus | 'todos'>(initialStatus ?? 'todos');
 
-  // initial fetch + refetch on filter change
   useEffect(() => {
     let cancel = false;
     // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -91,7 +90,6 @@ export function PedidosList({
     };
   }, [supabase, status, search]);
 
-  // realtime: novos inserts + updates
   useEffect(() => {
     const channel = supabase
       .channel('pedidos-list')
@@ -123,20 +121,20 @@ export function PedidosList({
   return (
     <div className="space-y-4">
       {/* Filtros */}
-      <Card>
-        <CardContent className="flex flex-col sm:flex-row gap-3 pt-6">
+      <ContentCard className="p-4!" variant="padded">
+        <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
             <Input
               placeholder="Buscar por cliente, documento ou bairro…"
-              className="pl-9"
+              className="pl-9 bg-white/60 dark:bg-white/5"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
           </div>
           {!hideStatusFilter && (
             <Select value={status} onValueChange={(v) => setStatus(v as PedidoStatus | 'todos')}>
-              <SelectTrigger className="w-full sm:w-48">
+              <SelectTrigger className="w-full sm:w-48 bg-white/60 dark:bg-white/5">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
@@ -153,87 +151,96 @@ export function PedidosList({
               href="/vendas/novo"
               className={cn(
                 buttonVariants(),
-                'bg-franzoni-orange hover:bg-franzoni-orange-600 text-white',
+                'bg-franzoni-orange hover:bg-franzoni-orange-600 text-white shadow-sm shadow-franzoni-orange/30',
               )}
             >
               <Plus className="h-4 w-4 mr-1" /> Novo Pedido
             </Link>
           )}
-        </CardContent>
-      </Card>
+        </div>
+      </ContentCard>
 
       {/* Tabela */}
-      <Card>
-        <CardContent className="p-0">
-          <Table>
-            <TableHeader>
+      <ContentCard variant="flush">
+        <Table>
+          <TableHeader>
+            <TableRow className="hover:bg-transparent">
+              <TableHead className="w-24 pl-5">Mapa</TableHead>
+              <TableHead>Cliente</TableHead>
+              <TableHead>Bairro</TableHead>
+              <TableHead>Entrega</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead className="text-right pr-5">Valor</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {loading ? (
               <TableRow>
-                <TableHead className="w-24">Mapa</TableHead>
-                <TableHead>Cliente</TableHead>
-                <TableHead>Bairro</TableHead>
-                <TableHead>Entrega</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead className="text-right">Valor</TableHead>
+                <TableCell colSpan={6} className="px-5">
+                  <div className="space-y-2 py-2">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                      <div key={i} className="h-9 rounded-md animate-pulse bg-muted/60" />
+                    ))}
+                  </div>
+                </TableCell>
               </TableRow>
-            </TableHeader>
-            <TableBody>
-              {loading ? (
-                <TableRow>
-                  <TableCell colSpan={6}>
-                    <div className="space-y-2 py-2">
-                      {Array.from({ length: 5 }).map((_, i) => (
-                        <div key={i} className="h-8 rounded animate-pulse bg-muted/60" />
-                      ))}
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ) : pedidos.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={6} className="text-center text-muted-foreground py-12">
-                    Nenhum pedido encontrado.
-                  </TableCell>
-                </TableRow>
-              ) : (
-                pedidos.map((p) => {
-                  const href =
-                    mode === 'logistica'
-                      ? `/logistica/${p.id}`
-                      : mode === 'historico'
-                      ? `/historico/${p.id}`
-                      : `/vendas/${p.id}`;
-                  return (
-                    <TableRow
-                      key={p.id}
-                      className="cursor-pointer hover:bg-muted/40"
-                      onClick={() => router.push(href)}
-                    >
-                      <TableCell className="font-mono text-xs">#{p.numero_mapa}</TableCell>
-                      <TableCell className="font-medium">{p.cliente_nome}</TableCell>
-                      <TableCell className="text-franzoni-navy-600 font-medium">
-                        {p.cliente_bairro || '—'}
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        {p.data_entrega
-                          ? format(new Date(p.data_entrega), "dd 'de' MMM", { locale: ptBR })
-                          : '—'}
-                      </TableCell>
-                      <TableCell>
-                        <StatusBadge status={p.status} />
-                      </TableCell>
-                      <TableCell className="text-right font-mono">
-                        {Number(p.valor_total).toLocaleString('pt-BR', {
-                          style: 'currency',
-                          currency: 'BRL',
-                        })}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })
-              )}
-            </TableBody>
-          </Table>
-        </CardContent>
-      </Card>
+            ) : pedidos.length === 0 ? (
+              <TableRow>
+                <TableCell colSpan={6} className="py-16">
+                  <div className="flex flex-col items-center gap-3 text-muted-foreground">
+                    <Inbox className="h-10 w-10 opacity-40" />
+                    <p className="text-sm">Nenhum pedido encontrado.</p>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : (
+              pedidos.map((p) => {
+                const href =
+                  mode === 'logistica'
+                    ? `/logistica/${p.id}`
+                    : mode === 'historico'
+                    ? `/historico/${p.id}`
+                    : `/vendas/${p.id}`;
+                return (
+                  <TableRow
+                    key={p.id}
+                    className="cursor-pointer hover:bg-franzoni-orange/5 transition-colors"
+                    onClick={() => router.push(href)}
+                  >
+                    <TableCell className="font-mono text-xs text-muted-foreground pl-5">
+                      #{p.numero_mapa}
+                    </TableCell>
+                    <TableCell className="font-medium text-foreground">{p.cliente_nome}</TableCell>
+                    <TableCell>
+                      {p.cliente_bairro ? (
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-md bg-franzoni-navy/8 text-franzoni-navy dark:text-franzoni-navy-100 text-xs font-medium">
+                          {p.cliente_bairro}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground">—</span>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-sm">
+                      {p.data_entrega
+                        ? format(new Date(p.data_entrega), "dd 'de' MMM", { locale: ptBR })
+                        : '—'}
+                    </TableCell>
+                    <TableCell>
+                      <StatusBadge status={p.status} />
+                    </TableCell>
+                    <TableCell className="text-right font-mono pr-5">
+                      {Number(p.valor_total).toLocaleString('pt-BR', {
+                        style: 'currency',
+                        currency: 'BRL',
+                      })}
+                    </TableCell>
+                  </TableRow>
+                );
+              })
+            )}
+          </TableBody>
+        </Table>
+      </ContentCard>
     </div>
   );
 }

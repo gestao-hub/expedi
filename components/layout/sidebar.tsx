@@ -11,7 +11,10 @@ import {
   History,
   Users,
   LogOut,
+  Moon,
+  Sun,
 } from 'lucide-react';
+import { useTheme } from 'next-themes';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
@@ -21,25 +24,56 @@ import type { UserRole } from '@/lib/types';
 import type { LucideIcon } from 'lucide-react';
 
 type NavItem = { label: string; href: string; icon: LucideIcon };
+type NavSection = { title: string; items: NavItem[] };
 
-const NAV: Record<UserRole, NavItem[]> = {
+const NAV: Record<UserRole, NavSection[]> = {
   vendedor: [
-    { label: 'Meus Pedidos', href: '/vendas',       icon: Package },
-    { label: 'Novo Pedido',  href: '/vendas/novo',  icon: PackagePlus },
-    { label: 'Histórico',    href: '/historico',    icon: History },
+    {
+      title: 'Operação',
+      items: [
+        { label: 'Meus Pedidos', href: '/vendas',      icon: Package },
+        { label: 'Novo Pedido',  href: '/vendas/novo', icon: PackagePlus },
+      ],
+    },
+    {
+      title: 'Consulta',
+      items: [{ label: 'Histórico', href: '/historico', icon: History }],
+    },
   ],
   logistica: [
-    { label: 'Fila',           href: '/logistica',                                icon: TruckIcon },
-    { label: 'Em Separação',   href: '/logistica?status=em_separacao',           icon: ScanLine },
-    { label: 'Histórico',      href: '/historico',                                icon: History },
+    {
+      title: 'Operação',
+      items: [
+        { label: 'Fila',         href: '/logistica',                       icon: TruckIcon },
+        { label: 'Em Separação', href: '/logistica?status=em_separacao',  icon: ScanLine },
+      ],
+    },
+    {
+      title: 'Consulta',
+      items: [{ label: 'Histórico', href: '/historico', icon: History }],
+    },
   ],
   admin: [
-    { label: 'Dashboard',      href: '/admin',          icon: LayoutDashboard },
-    { label: 'Pedidos',        href: '/vendas',         icon: Package },
-    { label: 'Novo Pedido',    href: '/vendas/novo',    icon: PackagePlus },
-    { label: 'Logística',      href: '/logistica',      icon: TruckIcon },
-    { label: 'Histórico',      href: '/historico',      icon: History },
-    { label: 'Usuários',       href: '/admin/usuarios', icon: Users },
+    {
+      title: 'Principal',
+      items: [{ label: 'Dashboard', href: '/admin', icon: LayoutDashboard }],
+    },
+    {
+      title: 'Operação',
+      items: [
+        { label: 'Pedidos',     href: '/vendas',      icon: Package },
+        { label: 'Novo Pedido', href: '/vendas/novo', icon: PackagePlus },
+        { label: 'Logística',   href: '/logistica',   icon: TruckIcon },
+      ],
+    },
+    {
+      title: 'Consulta',
+      items: [{ label: 'Histórico', href: '/historico', icon: History }],
+    },
+    {
+      title: 'Admin',
+      items: [{ label: 'Usuários', href: '/admin/usuarios', icon: Users }],
+    },
   ],
 };
 
@@ -57,62 +91,88 @@ function initials(name: string) {
 export function Sidebar() {
   const { profile } = useUser();
   const pathname = usePathname();
-  const items = NAV[profile.role] ?? NAV.vendedor;
+  const { setTheme, resolvedTheme } = useTheme();
+  const sections = NAV[profile.role] ?? NAV.vendedor;
 
   return (
-    <aside className="hidden md:flex w-64 shrink-0 flex-col bg-franzoni-navy text-white">
-      <div className="px-6 py-6 border-b border-white/10">
-        <Link href="/" className="block">
-          <FranzoniLogo size={56} />
+    <aside className="hidden md:flex w-64 shrink-0 flex-col sidebar-surface text-white">
+      {/* Logo */}
+      <div className="px-4 pt-8 pb-6 flex items-center justify-center border-b border-white/8">
+        <Link href="/" className="block transition-opacity hover:opacity-90">
+          <FranzoniLogo size={112} variant="light" />
         </Link>
       </div>
 
-      <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-        {items.map((item) => {
-          const active =
-            pathname === item.href.split('?')[0] ||
-            (item.href !== '/' && pathname.startsWith(item.href.split('?')[0] + '/'));
-          const Icon = item.icon;
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                'flex items-center gap-3 px-3 py-2 rounded-md text-sm font-medium transition-colors',
-                active
-                  ? 'bg-franzoni-orange text-white shadow-sm'
-                  : 'text-white/80 hover:bg-white/5 hover:text-white',
-              )}
-            >
-              <Icon className="h-4 w-4 shrink-0" />
-              <span className="truncate">{item.label}</span>
-            </Link>
-          );
-        })}
+      {/* Nav */}
+      <nav className="flex-1 py-3 space-y-1 overflow-y-auto">
+        {sections.map((section) => (
+          <div key={section.title} className="pb-2">
+            <p className="nav-section-label">{section.title}</p>
+            {section.items.map((item) => {
+              const targetPath = item.href.split('?')[0];
+              const active =
+                pathname === targetPath ||
+                (targetPath !== '/' && pathname.startsWith(targetPath + '/'));
+              const Icon = item.icon;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className="nav-item"
+                  data-active={active}
+                >
+                  <Icon className="h-4 w-4 shrink-0" />
+                  <span className="truncate">{item.label}</span>
+                </Link>
+              );
+            })}
+          </div>
+        ))}
       </nav>
 
-      <div className="px-3 py-4 border-t border-white/10 space-y-2">
-        <div className="flex items-center gap-3 px-2">
-          <Avatar className="h-9 w-9 bg-franzoni-orange/20 text-franzoni-orange-100">
-            <AvatarFallback className="bg-transparent text-sm font-medium">
+      {/* Footer: user + theme + logout */}
+      <div className="border-t border-white/8 px-3 py-3 space-y-2">
+        <div className="flex items-center gap-3 px-2 py-1.5">
+          <Avatar className="h-9 w-9 bg-franzoni-orange/20 ring-1 ring-franzoni-orange/30">
+            <AvatarFallback className="bg-transparent text-sm font-semibold text-franzoni-orange-100">
               {initials(profile.full_name || profile.email || '?')}
             </AvatarFallback>
           </Avatar>
           <div className="min-w-0 flex-1">
-            <p className="text-sm font-medium truncate">{profile.full_name || profile.email}</p>
-            <p className="text-xs text-white/60 capitalize">{profile.role}</p>
+            <p className="text-sm font-medium truncate text-white/95">
+              {profile.full_name || profile.email}
+            </p>
+            <p className="text-xs text-white/50 capitalize">{profile.role}</p>
           </div>
         </div>
-        <form action="/auth/signout" method="post">
+
+        <div className="flex gap-1.5">
           <Button
-            type="submit"
             variant="ghost"
-            size="sm"
-            className="w-full justify-start text-white/80 hover:text-white hover:bg-white/5"
+            size="icon"
+            aria-label="Alternar tema"
+            className="h-8 w-8 text-white/70 hover:text-white hover:bg-white/8"
+            onClick={() => setTheme(resolvedTheme === 'dark' ? 'light' : 'dark')}
           >
-            <LogOut className="h-4 w-4 mr-2" /> Sair
+            {resolvedTheme === 'dark' ? (
+              <Sun className="h-4 w-4" />
+            ) : (
+              <Moon className="h-4 w-4" />
+            )}
           </Button>
-        </form>
+          <form action="/auth/signout" method="post" className="flex-1">
+            <Button
+              type="submit"
+              variant="ghost"
+              size="sm"
+              className={cn(
+                'w-full justify-start text-white/70 hover:text-white hover:bg-white/8',
+              )}
+            >
+              <LogOut className="h-4 w-4 mr-2" /> Sair
+            </Button>
+          </form>
+        </div>
       </div>
     </aside>
   );

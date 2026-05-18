@@ -34,7 +34,7 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-sans);
   --font-mono: var(--font-geist-mono);
-  --font-heading: var(--font-sans);
+  --font-heading: var(--font-heading);
   --color-sidebar-ring: var(--sidebar-ring);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
@@ -148,10 +148,99 @@
   }
   body {
     @apply bg-background text-foreground;
+    background-image:
+      radial-gradient(circle at 20% 0%, rgba(243, 112, 33, 0.06), transparent 50%),
+      radial-gradient(circle at 80% 100%, rgba(30, 39, 97, 0.05), transparent 50%);
+    background-attachment: fixed;
   }
-  html {
-    @apply font-sans;
+  html { @apply font-sans; }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-heading), var(--font-sans);
+    letter-spacing: -0.01em;
   }
+}
+
+/* ------------------------------------------------------------
+ * Glassmorphism utilities (PiperLeads2 style, paleta Franzoni)
+ * ------------------------------------------------------------ */
+.glass-card {
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: saturate(180%) blur(14px);
+  -webkit-backdrop-filter: saturate(180%) blur(14px);
+  border: 1px solid rgba(30, 39, 97, 0.08);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.6) inset,
+    0 8px 24px -12px rgba(17, 22, 58, 0.18);
+}
+.dark .glass-card {
+  background: rgba(20, 22, 35, 0.55);
+  border-color: rgba(255, 255, 255, 0.06);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.04) inset,
+    0 8px 24px -12px rgba(0, 0, 0, 0.55);
+}
+
+.glass-elevated {
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: saturate(200%) blur(20px);
+  -webkit-backdrop-filter: saturate(200%) blur(20px);
+  border: 1px solid rgba(30, 39, 97, 0.10);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.7) inset,
+    0 12px 36px -16px rgba(17, 22, 58, 0.24);
+}
+.dark .glass-elevated {
+  background: rgba(20, 22, 35, 0.7);
+  border-color: rgba(255, 255, 255, 0.08);
+}
+
+/* Sidebar surface — navy translúcido */
+.sidebar-surface {
+  background: linear-gradient(180deg, #1E2761 0%, #161D4A 100%);
+  border-right: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+/* Nav item styles */
+.nav-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.875rem 0.5rem 1rem;
+  margin: 0 0.5rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.72);
+  transition: all 150ms ease;
+}
+.nav-item:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.95);
+}
+.nav-item[data-active="true"] {
+  background: rgba(243, 112, 33, 0.16);
+  color: #ffffff;
+}
+.nav-item[data-active="true"]::before {
+  content: "";
+  position: absolute;
+  left: -0.5rem;
+  top: 6px; bottom: 6px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: #F37021;
+  box-shadow: 0 0 12px rgba(243, 112, 33, 0.6);
+}
+
+.nav-section-label {
+  padding: 0.875rem 1.25rem 0.25rem;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.35);
 }
 
 /* ------------------------------------------------------------

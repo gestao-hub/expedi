@@ -1,8 +1,9 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
-import { Printer, History } from 'lucide-react';
+import { Printer, History, ArrowLeft } from 'lucide-react';
 import { buttonVariants } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { PageHeader } from '@/components/layout/page-header';
+import { ContentCard, ContentCardTitle } from '@/components/layout/content-card';
 import { MapaCarregamento, type PontoComItens } from '@/components/mapa-carregamento';
 import { createClient } from '@/lib/supabase/server';
 import { cn } from '@/lib/utils';
@@ -39,7 +40,13 @@ export default async function PedidoDetailPage({
   if (!pedido) notFound();
 
   const vendedor = pedido.vendedor_id
-    ? (await supabase.from('profiles').select('full_name, email').eq('id', pedido.vendedor_id).single()).data
+    ? (
+        await supabase
+          .from('profiles')
+          .select('full_name, email')
+          .eq('id', pedido.vendedor_id)
+          .single()
+      ).data
     : null;
 
   const pontos = (pontosRaw ?? []).map((p) => ({
@@ -52,22 +59,29 @@ export default async function PedidoDetailPage({
   const podeCancelar = ['rascunho', 'pendente'].includes(pedido.status);
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto">
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <h2 className="text-2xl font-semibold">
-          Pedido <span className="text-muted-foreground font-mono">#{pedido.numero_mapa}</span>
-        </h2>
-        <div className="flex gap-2">
-          <Link
-            href={`/imprimir/${id}`}
-            target="_blank"
-            className={cn(buttonVariants({ variant: 'outline' }))}
-          >
-            <Printer className="h-4 w-4 mr-1" /> Imprimir
-          </Link>
-          {podeCancelar && <CancelarPedidoButton id={id} />}
-        </div>
-      </div>
+    <>
+      <PageHeader
+        title={`Pedido #${pedido.numero_mapa}`}
+        description={pedido.cliente_nome}
+        actions={
+          <>
+            <Link
+              href="/vendas"
+              className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }))}
+            >
+              <ArrowLeft className="h-4 w-4 mr-1" /> Voltar
+            </Link>
+            <Link
+              href={`/imprimir/${id}`}
+              target="_blank"
+              className={cn(buttonVariants({ variant: 'outline' }))}
+            >
+              <Printer className="h-4 w-4 mr-1" /> Imprimir
+            </Link>
+            {podeCancelar && <CancelarPedidoButton id={id} />}
+          </>
+        }
+      />
 
       <MapaCarregamento
         pedido={pedido}
@@ -76,38 +90,37 @@ export default async function PedidoDetailPage({
         vendedor={vendedor}
       />
 
-      {/* Timeline */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-base flex items-center gap-2">
-            <History className="h-4 w-4" /> Histórico
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {!eventos?.length ? (
-            <p className="text-sm text-muted-foreground italic">Sem eventos.</p>
-          ) : (
-            <ol className="space-y-3">
-              {eventos.map((ev) => {
-                const usuario = ev.usuario as { full_name?: string | null } | null;
-                return (
-                  <li key={ev.id} className="flex gap-3 text-sm">
-                    <div className="w-2 h-2 rounded-full bg-franzoni-orange mt-1.5 shrink-0" />
-                    <div className="flex-1">
-                      <p>{ev.descricao || ev.tipo}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {format(new Date(ev.created_at), "dd/MM 'às' HH:mm", { locale: ptBR })}
-                        {usuario?.full_name ? ` · ${usuario.full_name}` : ''}
-                      </p>
-                    </div>
-                  </li>
-                );
-              })}
-            </ol>
-          )}
-        </CardContent>
-      </Card>
-    </div>
+      <ContentCard
+        header={
+          <ContentCardTitle>
+            <span className="inline-flex items-center gap-2">
+              <History className="h-4 w-4" /> Histórico
+            </span>
+          </ContentCardTitle>
+        }
+      >
+        {!eventos?.length ? (
+          <p className="text-sm text-muted-foreground italic">Sem eventos.</p>
+        ) : (
+          <ol className="space-y-3">
+            {eventos.map((ev) => {
+              const usuario = ev.usuario as { full_name?: string | null } | null;
+              return (
+                <li key={ev.id} className="flex gap-3 text-sm">
+                  <div className="w-2 h-2 rounded-full bg-franzoni-orange mt-1.5 shrink-0 ring-4 ring-franzoni-orange/15" />
+                  <div className="flex-1">
+                    <p>{ev.descricao || ev.tipo}</p>
+                    <p className="text-xs text-muted-foreground">
+                      {format(new Date(ev.created_at), "dd/MM 'às' HH:mm", { locale: ptBR })}
+                      {usuario?.full_name ? ` · ${usuario.full_name}` : ''}
+                    </p>
+                  </div>
+                </li>
+              );
+            })}
+          </ol>
+        )}
+      </ContentCard>
+    </>
   );
 }
-

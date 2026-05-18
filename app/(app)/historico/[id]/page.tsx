@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { Printer, ArrowLeft } from 'lucide-react';
 import { buttonVariants } from '@/components/ui/button';
+import { PageHeader } from '@/components/layout/page-header';
 import { MapaCarregamento, type PontoComItens } from '@/components/mapa-carregamento';
 import { createClient } from '@/lib/supabase/server';
 import { cn } from '@/lib/utils';
@@ -28,7 +29,13 @@ export default async function HistoricoDetail({
   if (!pedido) notFound();
 
   const vendedor = pedido.vendedor_id
-    ? (await supabase.from('profiles').select('full_name, email').eq('id', pedido.vendedor_id).single()).data
+    ? (
+        await supabase
+          .from('profiles')
+          .select('full_name, email')
+          .eq('id', pedido.vendedor_id)
+          .single()
+      ).data
     : null;
 
   const pontos = (pontosRaw ?? []).map((p) => ({
@@ -39,19 +46,33 @@ export default async function HistoricoDetail({
   })) as unknown as PontoComItens[];
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto">
-      <div className="flex items-center justify-between gap-3">
-        <Link href="/historico" className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }))}>
-          <ArrowLeft className="h-4 w-4 mr-1" /> Histórico
-        </Link>
-        <Link
-          href={`/imprimir/${id}`}
-          target="_blank"
-          className={cn(buttonVariants({ variant: 'outline' }))}
-        >
-          <Printer className="h-4 w-4 mr-1" /> Imprimir
-        </Link>
-      </div>
+    <>
+      <PageHeader
+        title={
+          <>
+            <span className="text-muted-foreground font-mono mr-2">#{pedido.numero_mapa}</span>
+            {pedido.cliente_nome}
+          </>
+        }
+        description="Pedido finalizado (somente leitura)."
+        actions={
+          <>
+            <Link
+              href="/historico"
+              className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }))}
+            >
+              <ArrowLeft className="h-4 w-4 mr-1" /> Histórico
+            </Link>
+            <Link
+              href={`/imprimir/${id}`}
+              target="_blank"
+              className={cn(buttonVariants({ variant: 'outline' }))}
+            >
+              <Printer className="h-4 w-4 mr-1" /> Imprimir
+            </Link>
+          </>
+        }
+      />
 
       <MapaCarregamento
         pedido={pedido}
@@ -59,6 +80,6 @@ export default async function HistoricoDetail({
         logistica={logistica ?? undefined}
         vendedor={vendedor}
       />
-    </div>
+    </>
   );
 }

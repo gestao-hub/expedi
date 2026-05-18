@@ -1,46 +1,47 @@
 'use client';
 
 import { useState } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { PageHeader } from '@/components/layout/page-header';
+import { ContentCard, ContentCardTitle } from '@/components/layout/content-card';
 import { UploadPdf } from '@/components/upload-pdf';
 import { PedidoForm } from '@/components/pedido-form';
 import { parsedToFormInput, emptyFormInput } from '@/lib/parser/to-form-input';
 import type { PedidoFormInput } from '@/lib/validators/pedido';
+import { ArrowLeft } from 'lucide-react';
 
 export default function NovoPedidoPage() {
   const [defaults, setDefaults] = useState<PedidoFormInput | null>(null);
 
   if (defaults) {
     return (
-      <div className="space-y-6 max-w-6xl mx-auto">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-2xl font-semibold">Revisar Pedido</h2>
-            <p className="text-sm text-muted-foreground">
-              Confira os dados extraídos antes de salvar.
-            </p>
-          </div>
-          <Button variant="outline" onClick={() => setDefaults(null)}>
-            ← Voltar ao upload
-          </Button>
-        </div>
+      <>
+        <PageHeader
+          title="Revisar Pedido"
+          description="Confira os dados extraídos do PDF antes de enviar para a logística."
+          actions={
+            <Button variant="outline" onClick={() => setDefaults(null)}>
+              <ArrowLeft className="h-4 w-4 mr-1" /> Voltar
+            </Button>
+          }
+        />
         <PedidoForm defaultValues={defaults} />
-      </div>
+      </>
     );
   }
 
   return (
-    <div className="max-w-2xl mx-auto">
-      <Card>
-        <CardHeader>
-          <CardTitle>Novo Pedido</CardTitle>
-          <CardDescription>
-            Faça upload do PDF do pedido emitido pelo ERP. Os dados serão extraídos
-            automaticamente para revisão.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-6">
+    <>
+      <PageHeader
+        title="Novo Pedido"
+        description="Faça upload do PDF emitido pelo ERP. Os dados serão extraídos automaticamente."
+      />
+
+      <div className="max-w-2xl">
+        <ContentCard
+          header={<ContentCardTitle>Importar PDF</ContentCardTitle>}
+          className="space-y-6"
+        >
           <UploadPdf
             onParsedAction={(data) =>
               setDefaults(parsedToFormInput(data.pedido, data.storage_path))
@@ -48,9 +49,9 @@ export default function NovoPedidoPage() {
           />
 
           <div className="flex items-center gap-3 text-xs text-muted-foreground">
-            <div className="flex-1 border-t" />
+            <div className="flex-1 border-t border-border/60" />
             <span>ou</span>
-            <div className="flex-1 border-t" />
+            <div className="flex-1 border-t border-border/60" />
           </div>
 
           <Button
@@ -60,8 +61,8 @@ export default function NovoPedidoPage() {
           >
             Preencher manualmente (sem PDF)
           </Button>
-        </CardContent>
-      </Card>
-    </div>
+        </ContentCard>
+      </div>
+    </>
   );
 }

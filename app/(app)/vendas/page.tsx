@@ -1,15 +1,14 @@
+import { PageHeader } from '@/components/layout/page-header';
 import { PedidosList } from '@/components/pedidos-list';
 
 export default function VendasPage() {
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-semibold">Meus Pedidos</h2>
-        <p className="text-sm text-muted-foreground">
-          Pedidos que você criou. Atualizações de status chegam em tempo real.
-        </p>
-      </div>
+    <>
+      <PageHeader
+        title="Meus Pedidos"
+        description="Pedidos criados por você. As atualizações de status da logística chegam em tempo real."
+      />
       <PedidosList mode="vendas" />
-    </div>
+    </>
   );
 }

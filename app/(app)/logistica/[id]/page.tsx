@@ -2,6 +2,8 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { Printer, ArrowLeft } from 'lucide-react';
 import { buttonVariants } from '@/components/ui/button';
+import { PageHeader } from '@/components/layout/page-header';
+import { StatusBadge } from '@/components/status-badge';
 import { MapaCarregamento, type PontoComItens } from '@/components/mapa-carregamento';
 import { createClient } from '@/lib/supabase/server';
 import { cn } from '@/lib/utils';
@@ -30,7 +32,13 @@ export default async function LogisticaDetailPage({
   if (!pedido) notFound();
 
   const vendedor = pedido.vendedor_id
-    ? (await supabase.from('profiles').select('full_name, email').eq('id', pedido.vendedor_id).single()).data
+    ? (
+        await supabase
+          .from('profiles')
+          .select('full_name, email')
+          .eq('id', pedido.vendedor_id)
+          .single()
+      ).data
     : null;
 
   const pontos = (pontosRaw ?? []).map((p) => ({
@@ -56,27 +64,40 @@ export default async function LogisticaDetailPage({
     : emptyLogistica();
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto">
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div className="flex items-center gap-2">
-          <Link
-            href="/logistica"
-            className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }))}
-          >
-            <ArrowLeft className="h-4 w-4 mr-1" /> Fila
-          </Link>
-          <h2 className="text-2xl font-semibold">
-            <span className="text-muted-foreground font-mono">#{pedido.numero_mapa}</span>
-          </h2>
-        </div>
-        <Link
-          href={`/imprimir/${id}`}
-          target="_blank"
-          className={cn(buttonVariants({ variant: 'outline' }))}
-        >
-          <Printer className="h-4 w-4 mr-1" /> Imprimir Mapa
-        </Link>
-      </div>
+    <>
+      <PageHeader
+        title={
+          <>
+            <span className="text-muted-foreground font-mono mr-2">#{pedido.numero_mapa}</span>
+            {pedido.cliente_nome}
+          </>
+        }
+        description={
+          <span className="inline-flex items-center gap-2">
+            <StatusBadge status={pedido.status} />
+            {pedido.cliente_bairro && (
+              <span className="text-xs">· bairro {pedido.cliente_bairro}</span>
+            )}
+          </span>
+        }
+        actions={
+          <>
+            <Link
+              href="/logistica"
+              className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }))}
+            >
+              <ArrowLeft className="h-4 w-4 mr-1" /> Fila
+            </Link>
+            <Link
+              href={`/imprimir/${id}`}
+              target="_blank"
+              className={cn(buttonVariants({ variant: 'outline' }))}
+            >
+              <Printer className="h-4 w-4 mr-1" /> Imprimir Mapa
+            </Link>
+          </>
+        }
+      />
 
       <MapaCarregamento
         pedido={pedido}
@@ -86,6 +107,6 @@ export default async function LogisticaDetailPage({
       />
 
       <BaixaForm pedidoId={id} status={pedido.status} defaultValues={defaults} />
-    </div>
+    </>
   );
 }

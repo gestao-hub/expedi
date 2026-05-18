@@ -1,13 +1,14 @@
+import { PageHeader } from '@/components/layout/page-header';
 import { PedidosList } from '@/components/pedidos-list';
-import { Card, CardContent } from '@/components/ui/card';
+import { ContentCard } from '@/components/layout/content-card';
 import { createClient } from '@/lib/supabase/server';
+import { CheckCircle2, DollarSign, UsersRound } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
 
 export default async function HistoricoPage() {
   const supabase = await createClient();
 
-  // KPIs
   const { count: total } = await supabase
     .from('pedidos')
     .select('id', { count: 'exact', head: true })
@@ -23,36 +24,61 @@ export default async function HistoricoPage() {
     (s: number, p: { valor_total: number }) => s + Number(p.valor_total ?? 0),
     0,
   );
-  const clientesUnicos = new Set((valores ?? []).map((p: { cliente_nome: string }) => p.cliente_nome)).size;
+  const clientesUnicos = new Set(
+    (valores ?? []).map((p: { cliente_nome: string }) => p.cliente_nome),
+  ).size;
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h2 className="text-2xl font-semibold">Histórico</h2>
-        <p className="text-sm text-muted-foreground">Pedidos finalizados.</p>
-      </div>
+    <>
+      <PageHeader title="Histórico" description="Pedidos finalizados e indicadores acumulados." />
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Kpi label="Pedidos finalizados" value={total ?? 0} />
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
         <Kpi
-          label="Valor total faturado"
+          icon={<CheckCircle2 className="h-5 w-5 text-status-finalizado" />}
+          label="Pedidos finalizados"
+          value={total ?? 0}
+        />
+        <Kpi
+          icon={<DollarSign className="h-5 w-5 text-franzoni-orange" />}
+          label="Valor faturado"
           value={valorTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
         />
-        <Kpi label="Clientes únicos" value={clientesUnicos} />
+        <Kpi
+          icon={<UsersRound className="h-5 w-5 text-franzoni-navy" />}
+          label="Clientes únicos"
+          value={clientesUnicos}
+        />
       </div>
 
       <PedidosList mode="historico" initialStatus="finalizado" showNewButton={false} />
-    </div>
+    </>
   );
 }
 
-function Kpi({ label, value }: { label: string; value: string | number }) {
+function Kpi({
+  icon,
+  label,
+  value,
+}: {
+  icon: React.ReactNode;
+  label: string;
+  value: string | number;
+}) {
   return (
-    <Card>
-      <CardContent className="pt-6">
-        <p className="text-xs uppercase tracking-wider text-muted-foreground">{label}</p>
-        <p className="text-2xl font-bold text-franzoni-navy mt-1">{value}</p>
-      </CardContent>
-    </Card>
+    <ContentCard className="p-5!">
+      <div className="flex items-start gap-3">
+        <div className="h-10 w-10 rounded-lg bg-franzoni-orange/10 flex items-center justify-center shrink-0">
+          {icon}
+        </div>
+        <div className="min-w-0">
+          <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">
+            {label}
+          </p>
+          <p className="text-2xl font-heading font-bold text-franzoni-navy dark:text-white mt-0.5">
+            {value}
+          </p>
+        </div>
+      </div>
+    </ContentCard>
   );
 }
