@@ -23,7 +23,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   return (
     <UserProvider profile={profile as Profile}>
-      <div className="flex flex-1 min-h-screen">
+      <div className="flex h-screen overflow-hidden">
         <Sidebar />
         <div className="flex-1 flex flex-col min-w-0">
           <MobileHeader />

@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { useTransition } from 'react';
-import { useFieldArray, useForm } from 'react-hook-form';
+import { Controller, useFieldArray, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Plus, Trash2, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -15,6 +15,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
 import { criarPedidoAction } from '@/app/(app)/vendas/actions';
 import { pedidoFormSchema, type PedidoFormInput } from '@/lib/validators/pedido';
+import { DatePicker } from '@/components/ui/date-picker';
 
 export function PedidoForm({ defaultValues }: { defaultValues: PedidoFormInput }) {
   const router = useRouter();
@@ -66,10 +67,30 @@ export function PedidoForm({ defaultValues }: { defaultValues: PedidoFormInput }
             <Input {...register('documento_erp')} placeholder="L4077" />
           </Field>
           <Field label="Data de Emissão">
-            <Input type="date" {...register('data_emissao')} />
+            <Controller
+              control={control}
+              name="data_emissao"
+              render={({ field }) => (
+                <DatePicker
+                  value={field.value}
+                  onChangeAction={field.onChange}
+                  placeholder="Selecionar emissão"
+                />
+              )}
+            />
           </Field>
           <Field label="Data de Entrega">
-            <Input type="date" {...register('data_entrega')} />
+            <Controller
+              control={control}
+              name="data_entrega"
+              render={({ field }) => (
+                <DatePicker
+                  value={field.value}
+                  onChangeAction={field.onChange}
+                  placeholder="Selecionar entrega"
+                />
+              )}
+            />
           </Field>
         </CardContent>
       </Card>
