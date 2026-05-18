@@ -59,7 +59,7 @@ export default async function PedidoDetailPage({
         </h2>
         <div className="flex gap-2">
           <Link
-            href={`/vendas/${id}/imprimir`}
+            href={`/imprimir/${id}`}
             target="_blank"
             className={cn(buttonVariants({ variant: 'outline' }))}
           >

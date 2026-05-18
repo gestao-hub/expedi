@@ -1,14 +1,45 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Suspense } from 'react';
+import { PedidosList } from '@/components/pedidos-list';
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import type { PedidoStatus } from '@/lib/types';
 
-export default function LogisticaPlaceholder() {
+const VALID: PedidoStatus[] = ['pendente', 'em_separacao', 'finalizado'];
+
+export default async function LogisticaPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ status?: string }>;
+}) {
+  const sp = await searchParams;
+  const status: PedidoStatus = VALID.includes(sp.status as PedidoStatus)
+    ? (sp.status as PedidoStatus)
+    : 'pendente';
+
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Fila da Logística</CardTitle>
-      </CardHeader>
-      <CardContent className="text-sm text-muted-foreground">
-        Fila de pedidos pendentes — implementada no Prompt 7.
-      </CardContent>
-    </Card>
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-2xl font-semibold">Fila de Logística</h2>
+        <p className="text-sm text-muted-foreground">
+          Pedidos enviados pelos vendedores. Ordenação por bairro + data de entrega.
+        </p>
+      </div>
+
+      <Tabs value={status} className="w-full">
+        <TabsList>
+          <TabsTrigger value="pendente"     render={<a href="/logistica?status=pendente" />}>Pendentes</TabsTrigger>
+          <TabsTrigger value="em_separacao" render={<a href="/logistica?status=em_separacao" />}>Em separação</TabsTrigger>
+          <TabsTrigger value="finalizado"   render={<a href="/logistica?status=finalizado" />}>Finalizados</TabsTrigger>
+        </TabsList>
+      </Tabs>
+
+      <Suspense fallback={<div className="h-32 rounded animate-pulse bg-muted/60" />}>
+        <PedidosList
+          mode="logistica"
+          initialStatus={status}
+          hideStatusFilter
+          showNewButton={false}
+        />
+      </Suspense>
+    </div>
   );
 }
