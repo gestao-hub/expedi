@@ -1,21 +1,504 @@
-/**
- * STUB temporário — substitua rodando:
- *   npx supabase login
- *   npx supabase link --project-ref louaguxcohfeicxxqggw
- *   npx supabase gen types typescript --linked > lib/types/database.ts
- *
- * Esse arquivo só existe para os clients Supabase compilarem antes do
- * primeiro typegen. Depois do typegen, o conteúdo daqui é totalmente
- * substituído pelos tipos auto-gerados.
- */
 export type Json =
   | string
   | number
   | boolean
   | null
   | { [key: string]: Json | undefined }
-  | Json[];
+  | Json[]
 
-// Permissivo até o typegen rodar:
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-export type Database = any;
+export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "14.5"
+  }
+  public: {
+    Tables: {
+      pedido_eventos: {
+        Row: {
+          created_at: string
+          descricao: string | null
+          id: string
+          payload: Json | null
+          pedido_id: string
+          tipo: string
+          usuario_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          payload?: Json | null
+          pedido_id: string
+          tipo: string
+          usuario_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          descricao?: string | null
+          id?: string
+          payload?: Json | null
+          pedido_id?: string
+          tipo?: string
+          usuario_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pedido_eventos_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedido_eventos_usuario_id_fkey"
+            columns: ["usuario_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pedido_itens: {
+        Row: {
+          codigo: string
+          created_at: string
+          desconto: number
+          descricao: string
+          endereco_estoque: string | null
+          id: string
+          lote: string | null
+          ordem: number
+          peso_bruto: number | null
+          peso_liquido: number | null
+          ponto_retirada_id: string
+          preco_unitario: number
+          quantidade: number
+          referencia: string | null
+          total: number
+          unidade: string
+        }
+        Insert: {
+          codigo?: string
+          created_at?: string
+          desconto?: number
+          descricao?: string
+          endereco_estoque?: string | null
+          id?: string
+          lote?: string | null
+          ordem?: number
+          peso_bruto?: number | null
+          peso_liquido?: number | null
+          ponto_retirada_id: string
+          preco_unitario?: number
+          quantidade?: number
+          referencia?: string | null
+          total?: number
+          unidade?: string
+        }
+        Update: {
+          codigo?: string
+          created_at?: string
+          desconto?: number
+          descricao?: string
+          endereco_estoque?: string | null
+          id?: string
+          lote?: string | null
+          ordem?: number
+          peso_bruto?: number | null
+          peso_liquido?: number | null
+          ponto_retirada_id?: string
+          preco_unitario?: number
+          quantidade?: number
+          referencia?: string | null
+          total?: number
+          unidade?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pedido_itens_ponto_retirada_id_fkey"
+            columns: ["ponto_retirada_id"]
+            isOneToOne: false
+            referencedRelation: "pedido_pontos_retirada"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pedido_logistica: {
+        Row: {
+          conferente: string | null
+          km_final: number | null
+          km_inicial: number | null
+          motorista: string | null
+          observacoes: string | null
+          pedido_id: string
+          peso_bruto_total: number | null
+          peso_liquido_total: number | null
+          pre_carga: string | null
+          regiao: string | null
+          updated_at: string
+          updated_by: string | null
+          veiculo: string | null
+        }
+        Insert: {
+          conferente?: string | null
+          km_final?: number | null
+          km_inicial?: number | null
+          motorista?: string | null
+          observacoes?: string | null
+          pedido_id: string
+          peso_bruto_total?: number | null
+          peso_liquido_total?: number | null
+          pre_carga?: string | null
+          regiao?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          veiculo?: string | null
+        }
+        Update: {
+          conferente?: string | null
+          km_final?: number | null
+          km_inicial?: number | null
+          motorista?: string | null
+          observacoes?: string | null
+          pedido_id?: string
+          peso_bruto_total?: number | null
+          peso_liquido_total?: number | null
+          pre_carga?: string | null
+          regiao?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          veiculo?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pedido_logistica_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: true
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "pedido_logistica_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pedido_pontos_retirada: {
+        Row: {
+          created_at: string
+          empresa_nome: string
+          endereco: string | null
+          id: string
+          ordem: number
+          pedido_id: string
+          tipo: Database["public"]["Enums"]["ponto_retirada_tipo"]
+        }
+        Insert: {
+          created_at?: string
+          empresa_nome?: string
+          endereco?: string | null
+          id?: string
+          ordem?: number
+          pedido_id: string
+          tipo?: Database["public"]["Enums"]["ponto_retirada_tipo"]
+        }
+        Update: {
+          created_at?: string
+          empresa_nome?: string
+          endereco?: string | null
+          id?: string
+          ordem?: number
+          pedido_id?: string
+          tipo?: Database["public"]["Enums"]["ponto_retirada_tipo"]
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pedido_pontos_retirada_pedido_id_fkey"
+            columns: ["pedido_id"]
+            isOneToOne: false
+            referencedRelation: "pedidos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      pedidos: {
+        Row: {
+          cliente_bairro: string | null
+          cliente_cep: string | null
+          cliente_cidade: string | null
+          cliente_cnpj_cpf: string | null
+          cliente_codigo: string | null
+          cliente_endereco: string | null
+          cliente_nome: string
+          cliente_telefone: string | null
+          cliente_uf: string | null
+          created_at: string
+          data_emissao: string | null
+          data_entrega: string | null
+          documento_erp: string | null
+          forma_pagamento: string | null
+          id: string
+          numero_mapa: number
+          observacoes: string | null
+          parcelas: string | null
+          status: Database["public"]["Enums"]["pedido_status"]
+          storage_pdf_path: string | null
+          updated_at: string
+          valor_total: number
+          vendedor_id: string | null
+        }
+        Insert: {
+          cliente_bairro?: string | null
+          cliente_cep?: string | null
+          cliente_cidade?: string | null
+          cliente_cnpj_cpf?: string | null
+          cliente_codigo?: string | null
+          cliente_endereco?: string | null
+          cliente_nome?: string
+          cliente_telefone?: string | null
+          cliente_uf?: string | null
+          created_at?: string
+          data_emissao?: string | null
+          data_entrega?: string | null
+          documento_erp?: string | null
+          forma_pagamento?: string | null
+          id?: string
+          numero_mapa?: number
+          observacoes?: string | null
+          parcelas?: string | null
+          status?: Database["public"]["Enums"]["pedido_status"]
+          storage_pdf_path?: string | null
+          updated_at?: string
+          valor_total?: number
+          vendedor_id?: string | null
+        }
+        Update: {
+          cliente_bairro?: string | null
+          cliente_cep?: string | null
+          cliente_cidade?: string | null
+          cliente_cnpj_cpf?: string | null
+          cliente_codigo?: string | null
+          cliente_endereco?: string | null
+          cliente_nome?: string
+          cliente_telefone?: string | null
+          cliente_uf?: string | null
+          created_at?: string
+          data_emissao?: string | null
+          data_entrega?: string | null
+          documento_erp?: string | null
+          forma_pagamento?: string | null
+          id?: string
+          numero_mapa?: number
+          observacoes?: string | null
+          parcelas?: string | null
+          status?: Database["public"]["Enums"]["pedido_status"]
+          storage_pdf_path?: string | null
+          updated_at?: string
+          valor_total?: number
+          vendedor_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pedidos_vendedor_id_fkey"
+            columns: ["vendedor_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          email: string
+          full_name: string
+          id: string
+          role: Database["public"]["Enums"]["user_role"]
+          updated_at: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string
+          full_name?: string
+          id: string
+          role?: Database["public"]["Enums"]["user_role"]
+          updated_at?: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string
+          full_name?: string
+          id?: string
+          role?: Database["public"]["Enums"]["user_role"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      current_user_role: {
+        Args: never
+        Returns: Database["public"]["Enums"]["user_role"]
+      }
+      show_limit: { Args: never; Returns: number }
+      show_trgm: { Args: { "": string }; Returns: string[] }
+      unaccent: { Args: { "": string }; Returns: string }
+    }
+    Enums: {
+      pedido_status:
+        | "rascunho"
+        | "pendente"
+        | "em_separacao"
+        | "finalizado"
+        | "cancelado"
+      ponto_retirada_tipo: "loja" | "deposito"
+      user_role: "admin" | "vendedor" | "logistica"
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
+}
+
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+
+export type Tables<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+        DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
+      DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
+      Row: infer R
+    }
+    ? R
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] &
+        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R
+      }
+      ? R
+      : never
+    : never
+
+export type TablesInsert<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Insert: infer I
+    }
+    ? I
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Insert: infer I
+      }
+      ? I
+      : never
+    : never
+
+export type TablesUpdate<
+  DefaultSchemaTableNameOrOptions extends
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
+  TableName extends DefaultSchemaTableNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
+    : never = never,
+> = DefaultSchemaTableNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
+      Update: infer U
+    }
+    ? U
+    : never
+  : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
+    ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
+        Update: infer U
+      }
+      ? U
+      : never
+    : never
+
+export type Enums<
+  DefaultSchemaEnumNameOrOptions extends
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
+  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
+    : never = never,
+> = DefaultSchemaEnumNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
+  : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
+    ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
+    : never
+
+export type CompositeTypes<
+  PublicCompositeTypeNameOrOptions extends
+    | keyof DefaultSchema["CompositeTypes"]
+    | { schema: keyof DatabaseWithoutInternals },
+  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+    schema: keyof DatabaseWithoutInternals
+  }
+    ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
+    : never = never,
+> = PublicCompositeTypeNameOrOptions extends {
+  schema: keyof DatabaseWithoutInternals
+}
+  ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
+  : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
+    ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
+    : never
+
+export const Constants = {
+  public: {
+    Enums: {
+      pedido_status: [
+        "rascunho",
+        "pendente",
+        "em_separacao",
+        "finalizado",
+        "cancelado",
+      ],
+      ponto_retirada_tipo: ["loja", "deposito"],
+      user_role: ["admin", "vendedor", "logistica"],
+    },
+  },
+} as const
