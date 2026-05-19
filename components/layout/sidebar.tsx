@@ -7,7 +7,6 @@ import {
   Package,
   PackagePlus,
   TruckIcon,
-  ScanLine,
   History,
   Users,
   LogOut,
@@ -48,10 +47,7 @@ const NAV: Record<UserRole, NavSection[]> = {
   logistica: [
     {
       title: 'Operação',
-      items: [
-        { label: 'Fila',         href: '/logistica',                      icon: TruckIcon },
-        { label: 'Em Separação', href: '/logistica?status=em_separacao', icon: ScanLine },
-      ],
+      items: [{ label: 'Fila', href: '/logistica', icon: TruckIcon }],
     },
     {
       title: 'Consulta',
