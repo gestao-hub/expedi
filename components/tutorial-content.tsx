@@ -24,6 +24,12 @@ import {
   RefreshCw,
   AlertTriangle,
   Copy,
+  MessageCircle,
+  BarChart3,
+  Download,
+  UsersRound,
+  IdCard,
+  Car,
   type LucideIcon,
 } from 'lucide-react';
 import { ContentCard } from '@/components/layout/content-card';
@@ -122,9 +128,9 @@ const STEPS_BY_ROLE: Record<UserRole, Step[]> = {
   admin: [
     {
       icon: LayoutDashboard,
-      title: 'Dashboard com a visão geral',
+      title: 'Dashboard com gráficos e KPIs',
       body:
-        'Em "Dashboard" você vê quantidades por status (Total / Pendentes / Em separação / Finalizados) e atalhos pras áreas principais. Boa primeira tela do dia pra checar o ritmo da operação.',
+        'Em "Dashboard" você vê contagens por status, tempo médio até finalizado, e 3 gráficos: pedidos por dia (últimos 30 dias), top 10 clientes por valor faturado e top 10 bairros por quantidade de entregas. Atalhos pras áreas principais ficam no fim.',
       cta: { label: 'Abrir Dashboard', href: '/admin' },
     },
     {
@@ -142,18 +148,33 @@ const STEPS_BY_ROLE: Record<UserRole, Step[]> = {
       cta: { label: 'Fila', href: '/logistica' },
     },
     {
+      icon: UsersRound,
+      title: 'Cadastro de clientes',
+      body:
+        'Em "Clientes" você vê todos os clientes que apareceram em pedidos — o sistema cria automaticamente no upload do PDF (chave: CNPJ). Edite nomes, mescle duplicados, ou desative os que pararam de comprar.',
+      cta: { label: 'Clientes', href: '/admin/clientes' },
+      tip: 'Quando vendedor sobe PDF, o sistema busca por CNPJ. Se existe, reutiliza; se não, cria. Nome do cadastro não é sobrescrito automaticamente — você edita aqui se quiser padronizar.',
+    },
+    {
+      icon: IdCard,
+      title: 'Motoristas e veículos',
+      body:
+        'Em "Motoristas" e "Veículos", cadastre quem dirige e o que dirige. Os ativos aparecem como sugestão (autocomplete) no formulário de baixa da logística — ninguém digita mais nome de motorista do zero.',
+      cta: { label: 'Motoristas', href: '/admin/motoristas' },
+    },
+    {
       icon: Users,
       title: 'Gerencie usuários e roles',
       body:
         'Em "Usuários" você vê todos os profiles cadastrados e pode mudar o role de cada um (admin / vendedor / logística). Você não pode rebaixar o próprio role — guardrail de segurança pra evitar lockout do admin.',
       cta: { label: 'Usuários', href: '/admin/usuarios' },
-      tip: 'Pra criar usuários novos, rode o script `scripts/seed-users.ts` localmente ou crie via Supabase Dashboard → Authentication → Add User. O sistema gera o profile automaticamente via trigger handle_new_user.',
+      tip: 'Pra criar usuários novos, rode o script `scripts/seed-users.ts` localmente ou crie via Supabase Dashboard → Authentication → Add User.',
     },
     {
       icon: History,
-      title: 'Histórico com KPIs',
+      title: 'Histórico + exportar CSV',
       body:
-        'Em "Histórico", além da lista dos finalizados, você vê 3 KPIs no topo: total de pedidos finalizados, valor faturado acumulado e clientes únicos. Filtre por período pra ver KPIs do mês, semana, etc.',
+        'Em "Histórico" você vê todos finalizados + 3 KPIs (total, valor faturado, clientes únicos). Filtre por período e clique em "Exportar CSV" pra baixar planilha completa com dados de pedido + logística — pronta pro contábil/financeiro.',
       cta: { label: 'Histórico', href: '/historico' },
     },
   ],
@@ -203,6 +224,13 @@ const GETTING_STARTED: Step[] = [
 
 const ADVANCED_FEATURES: Step[] = [
   {
+    icon: MessageCircle,
+    title: 'Comentários no pedido',
+    body:
+      'Em cada detalhe de pedido tem um card "Comentários" com thread vendedor↔logística. Substitui WhatsApp paralelo. Mensagem chega em tempo real pra quem estiver com a tela aberta. Ctrl+Enter envia rápido.',
+    tip: 'Bom pra: "produto X em falta, pode substituir?", "cliente pediu pra entregar amanhã em vez de hoje", "logística não consegue contato com o destinatário".',
+  },
+  {
     icon: Upload,
     title: 'Upload de vários PDFs em lote',
     body:
@@ -226,6 +254,24 @@ const ADVANCED_FEATURES: Step[] = [
     title: 'Filtros de data',
     body:
       'Acima da tabela tem atalhos rápidos (Todos / Hoje / Semana / Mês) e um range personalizado (De [data] até [data]). Tudo aplicado sobre "data de entrega". Combina com filtro de status e busca livre.',
+  },
+  {
+    icon: BarChart3,
+    title: 'Dashboard analítico (admin)',
+    body:
+      'Admins veem gráficos no dashboard: pedidos por dia (últimos 30), top clientes por valor faturado, top bairros por volume e tempo médio até finalizado.',
+  },
+  {
+    icon: Download,
+    title: 'Exportar histórico em CSV (admin)',
+    body:
+      'Botão "Exportar CSV" no /histórico baixa planilha completa (cliente, valor, motorista, veículo, conferente, kms, pesos, etc.) pronta pro Excel. BOM UTF-8 incluído então acentos aparecem certo.',
+  },
+  {
+    icon: Car,
+    title: 'Autocomplete de motorista e veículo (logística)',
+    body:
+      'Quando o admin cadastra motoristas e veículos em /admin/motoristas e /admin/veiculos, a logística vê eles como sugestão (autocomplete nativo do browser) ao digitar no formulário de baixa.',
   },
 ];
 
