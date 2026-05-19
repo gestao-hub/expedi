@@ -68,7 +68,36 @@ export function UsuariosTable({
   }, [profiles, sortBy, sortDir]);
 
   return (
-    <Table className="table-fixed w-full">
+    <>
+      {/* MOBILE: cards verticais */}
+      <ul className="md:hidden divide-y divide-border/50">
+        {sorted.map((p) => (
+          <li key={p.id} className="px-4 py-3 flex items-center gap-3">
+            <Avatar className="h-9 w-9 bg-franzoni-orange/15 ring-1 ring-franzoni-orange/25 shrink-0">
+              <AvatarFallback className="bg-transparent text-xs font-semibold text-franzoni-orange-700">
+                {initials(p.full_name || p.email)}
+              </AvatarFallback>
+            </Avatar>
+            <div className="min-w-0 flex-1">
+              <p className="font-medium text-sm truncate">{p.full_name || '—'}</p>
+              <p className="text-xs text-muted-foreground font-mono truncate">{p.email}</p>
+            </div>
+            <div className="shrink-0">
+              <RoleSelect
+                userId={p.id}
+                currentRole={p.role}
+                disabled={p.id === currentUserId}
+              />
+            </div>
+          </li>
+        ))}
+        {sorted.length === 0 && (
+          <li className="text-center text-muted-foreground py-12">Nenhum usuário.</li>
+        )}
+      </ul>
+
+      {/* DESKTOP: tabela */}
+      <Table className="hidden md:table table-fixed w-full">
       <TableHeader className="sticky top-0 z-10 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md">
         <TableRow className="hover:bg-transparent">
           <SortableHead
@@ -153,5 +182,6 @@ export function UsuariosTable({
         )}
       </TableBody>
     </Table>
+    </>
   );
 }

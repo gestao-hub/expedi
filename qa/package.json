@@ -1,0 +1,21 @@
+{
+  "name": "franzoni-qa",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "qa:full": "playwright test",
+    "qa:rbac": "playwright test rbac.spec.ts",
+    "qa:smoke": "playwright test smoke.spec.ts",
+    "qa:upload": "playwright test upload.spec.ts",
+    "qa:visual": "playwright test visual.spec.ts",
+    "qa:report": "playwright show-report",
+    "qa:install": "playwright install --with-deps chromium"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.49.0",
+    "dotenv": "^17.0.0",
+    "typescript": "^5.6.0",
+    "@types/node": "^22.0.0"
+  }
+}

@@ -1,0 +1,11 @@
+node_modules/
+.auth/
+playwright-report/
+test-results/
+*.local
+*.env
+report/
+__snapshots__/
+*.png
+*.webm
+*.zip

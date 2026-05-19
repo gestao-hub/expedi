@@ -147,33 +147,58 @@ export function PedidosList({
   }, [supabase, status, search, sortBy, sortDir, dateRange]);
 
   useEffect(() => {
-    const channel = supabase
-      .channel('pedidos-list')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'pedidos' },
-        (payload) => {
-          if (payload.eventType === 'INSERT') {
-            const novo = payload.new as Pedido;
-            setPedidos((prev) => {
-              if (prev.some((p) => p.id === novo.id)) return prev;
-              return [novo, ...prev];
-            });
-            if (mode === 'logistica' && novo.status === 'pendente') {
-              toast(`Novo pedido na fila: ${novo.cliente_nome}`);
-            }
-          } else if (payload.eventType === 'UPDATE') {
-            setPedidos((prev) =>
-              prev.map((p) => (p.id === (payload.new as Pedido).id ? (payload.new as Pedido) : p)),
-            );
-          } else if (payload.eventType === 'DELETE') {
-            setPedidos((prev) => prev.filter((p) => p.id !== (payload.old as Pedido).id));
-          }
-        },
-      )
-      .subscribe();
+    // Defer a subscription pra depois do primeiro paint — assim networkidle
+    // resolve mais rápido e a página fica interativa antes do realtime
+    // entrar em cena. Usa requestIdleCallback quando disponível.
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    let handle: number | NodeJS.Timeout | null = null;
 
-    return () => { supabase.removeChannel(channel); };
+    const subscribe = () => {
+      channel = supabase
+        .channel('pedidos-list')
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'pedidos' },
+          (payload) => {
+            if (payload.eventType === 'INSERT') {
+              const novo = payload.new as Pedido;
+              setPedidos((prev) => {
+                if (prev.some((p) => p.id === novo.id)) return prev;
+                return [novo, ...prev];
+              });
+              if (mode === 'logistica' && novo.status === 'pendente') {
+                toast(`Novo pedido na fila: ${novo.cliente_nome}`);
+              }
+            } else if (payload.eventType === 'UPDATE') {
+              setPedidos((prev) =>
+                prev.map((p) => (p.id === (payload.new as Pedido).id ? (payload.new as Pedido) : p)),
+              );
+            } else if (payload.eventType === 'DELETE') {
+              setPedidos((prev) => prev.filter((p) => p.id !== (payload.old as Pedido).id));
+            }
+          },
+        )
+        .subscribe();
+    };
+
+    if (typeof window !== 'undefined' && 'requestIdleCallback' in window) {
+      handle = (window as Window & typeof globalThis).requestIdleCallback(subscribe, {
+        timeout: 1000,
+      });
+    } else {
+      handle = setTimeout(subscribe, 600);
+    }
+
+    return () => {
+      if (handle != null) {
+        if (typeof handle === 'number' && typeof window !== 'undefined' && 'cancelIdleCallback' in window) {
+          (window as Window & typeof globalThis).cancelIdleCallback(handle);
+        } else {
+          clearTimeout(handle as NodeJS.Timeout);
+        }
+      }
+      if (channel) supabase.removeChannel(channel);
+    };
   }, [supabase, mode]);
 
   return (
@@ -241,10 +266,78 @@ export function PedidosList({
         </div>
       </ContentCard>
 
-      {/* Tabela */}
+      {/* Lista — tabela em desktop, cards em mobile */}
       <ContentCard variant="flush" className={cn(bounded && 'flex flex-col flex-1 min-h-0')}>
         <div className={cn(bounded ? 'flex-1 overflow-y-auto min-h-0' : '')}>
-          <Table className="table-fixed w-full">
+          {/* === MOBILE (< md): cards verticais === */}
+          <ul className="md:hidden divide-y divide-border/50">
+            {loading ? (
+              <li className="p-4">
+                <div className="space-y-2">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <div key={i} className="h-16 rounded-md animate-pulse bg-muted/60" />
+                  ))}
+                </div>
+              </li>
+            ) : pedidos.length === 0 ? (
+              <li className="py-16 flex flex-col items-center gap-3 text-muted-foreground">
+                <Inbox className="h-10 w-10 opacity-40" />
+                <p className="text-sm">Nenhum pedido encontrado.</p>
+              </li>
+            ) : (
+              pedidos.map((p) => {
+                const href =
+                  mode === 'logistica'
+                    ? `/logistica/${p.id}`
+                    : mode === 'historico'
+                    ? `/historico/${p.id}`
+                    : `/vendas/${p.id}`;
+                return (
+                  <li
+                    key={p.id}
+                    className="px-4 py-3 cursor-pointer active:bg-franzoni-orange/8 transition-colors"
+                    onClick={() => router.push(href)}
+                  >
+                    <div className="flex items-start justify-between gap-3 mb-1">
+                      <span className="font-mono text-[11px] text-muted-foreground shrink-0">
+                        #{p.numero_mapa}
+                      </span>
+                      <StatusBadge status={p.status} />
+                    </div>
+                    <p className="font-semibold text-sm text-foreground truncate">
+                      {p.cliente_nome}
+                    </p>
+                    <div className="flex items-center justify-between gap-2 mt-1.5 text-xs">
+                      <div className="flex items-center gap-2 min-w-0 flex-1">
+                        {p.cliente_bairro && (
+                          <span
+                            className="truncate px-2 py-0.5 rounded-md bg-franzoni-navy/8 text-franzoni-navy dark:text-franzoni-navy-100 font-medium"
+                            title={p.cliente_bairro}
+                          >
+                            {p.cliente_bairro}
+                          </span>
+                        )}
+                        <span className="text-muted-foreground shrink-0">
+                          {p.data_entrega
+                            ? format(new Date(`${p.data_entrega}T12:00:00`), "dd/MM", { locale: ptBR })
+                            : '—'}
+                        </span>
+                      </div>
+                      <span className="font-mono font-semibold text-foreground shrink-0">
+                        {Number(p.valor_total).toLocaleString('pt-BR', {
+                          style: 'currency',
+                          currency: 'BRL',
+                        })}
+                      </span>
+                    </div>
+                  </li>
+                );
+              })
+            )}
+          </ul>
+
+          {/* === DESKTOP (>= md): tabela === */}
+          <Table className="hidden md:table table-fixed w-full">
             <TableHeader
               className={cn(
                 bounded && 'sticky top-0 z-10 bg-white/90 dark:bg-zinc-900/90 backdrop-blur-md',
