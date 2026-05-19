@@ -279,60 +279,48 @@ export function PedidosList({
                 {r.label}
               </Button>
             ))}
-            <Button
-              type="button"
-              size="sm"
-              variant={dateRange === 'custom' ? 'default' : 'outline'}
-              className={cn(
-                'h-7 px-3 text-xs',
-                dateRange === 'custom' &&
-                  'bg-franzoni-orange hover:bg-franzoni-orange-600 text-white',
-              )}
-              onClick={() => setDateRange('custom')}
-            >
-              Personalizado
-            </Button>
-          </div>
 
-          {/* Inputs do range custom — só aparecem quando o pill 'Personalizado' está ativo */}
-          {dateRange === 'custom' && (
-            <div className="flex flex-wrap items-center gap-2 text-xs pt-1">
-              <div className="flex items-center gap-1.5">
-                <span className="text-muted-foreground">De</span>
-                <div className="w-44">
-                  <DatePicker
-                    value={customFrom}
-                    onChangeAction={setCustomFrom}
-                    placeholder="Data inicial"
-                  />
-                </div>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="text-muted-foreground">até</span>
-                <div className="w-44">
-                  <DatePicker
-                    value={customTo}
-                    onChangeAction={setCustomTo}
-                    placeholder="Data final"
-                  />
-                </div>
-              </div>
-              {(customFrom || customTo) && (
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="ghost"
-                  className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
-                  onClick={() => {
-                    setCustomFrom(null);
-                    setCustomTo(null);
-                  }}
-                >
-                  Limpar
-                </Button>
-              )}
+            {/* Divisor visual + range custom inline (substitui o pill "Personalizado") */}
+            <div className="h-5 w-px bg-border/60 mx-1.5" aria-hidden />
+            <span className="text-muted-foreground">De</span>
+            <div className="w-40">
+              <DatePicker
+                value={customFrom}
+                onChangeAction={(v) => {
+                  setCustomFrom(v);
+                  setDateRange(v || customTo ? 'custom' : 'todos');
+                }}
+                placeholder="Data inicial"
+              />
             </div>
-          )}
+            <span className="text-muted-foreground">até</span>
+            <div className="w-40">
+              <DatePicker
+                value={customTo}
+                onChangeAction={(v) => {
+                  setCustomTo(v);
+                  setDateRange(v || customFrom ? 'custom' : 'todos');
+                }}
+                placeholder="Data final"
+              />
+            </div>
+            {(customFrom || customTo) && (
+              <Button
+                type="button"
+                size="sm"
+                variant="ghost"
+                className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+                onClick={() => {
+                  setCustomFrom(null);
+                  setCustomTo(null);
+                  setDateRange('todos');
+                }}
+                aria-label="Limpar datas"
+              >
+                Limpar
+              </Button>
+            )}
+          </div>
         </div>
       </ContentCard>
 
