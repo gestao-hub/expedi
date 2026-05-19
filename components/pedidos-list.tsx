@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, useTransition } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -13,7 +13,7 @@ import {
   endOfMonth,
 } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Search, Plus, Inbox } from 'lucide-react';
+import { Search, Plus, Inbox, X, Play, CheckCircle2, Printer, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -39,6 +39,10 @@ import { DatePicker } from '@/components/ui/date-picker';
 import { StatusBadge } from '@/components/status-badge';
 import { createClient } from '@/lib/supabase/client';
 import type { Pedido, PedidoStatus } from '@/lib/types';
+import {
+  iniciarSeparacaoLoteAction,
+  finalizarLoteAction,
+} from '@/app/(app)/vendas/actions';
 
 type Mode = 'vendas' | 'logistica' | 'historico';
 type SortKey =
@@ -92,15 +96,19 @@ export function PedidosList({
   hideStatusFilter,
   showNewButton = true,
   bounded = false,
+  selectable = false,
 }: {
   mode?: Mode;
   initialStatus?: PedidoStatus | 'todos';
   hideStatusFilter?: boolean;
   showNewButton?: boolean;
   bounded?: boolean;
+  /** Quando true, exibe checkboxes pra seleção múltipla + barra de ações em lote. */
+  selectable?: boolean;
 }) {
   const supabase = useMemo(() => createClient(), []);
   const router = useRouter();
+  const [selected, setSelected] = useState<Set<string>>(new Set());
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -350,16 +358,40 @@ export function PedidosList({
                     : mode === 'historico'
                     ? `/historico/${p.id}`
                     : `/vendas/${p.id}`;
+                const isSel = selected.has(p.id);
                 return (
                   <li
                     key={p.id}
                     className="px-4 py-3 cursor-pointer active:bg-franzoni-orange/8 transition-colors"
-                    onClick={() => router.push(href)}
+                    onClick={(e) => {
+                      // Click no checkbox não navega
+                      if ((e.target as HTMLElement).tagName === 'INPUT') return;
+                      router.push(href);
+                    }}
                   >
                     <div className="flex items-start justify-between gap-3 mb-1">
-                      <span className="font-mono text-[11px] text-muted-foreground shrink-0">
-                        #{p.numero_mapa}
-                      </span>
+                      <div className="flex items-center gap-2 shrink-0">
+                        {selectable && (
+                          <input
+                            type="checkbox"
+                            aria-label="Selecionar pedido"
+                            className="h-4 w-4 rounded accent-franzoni-orange cursor-pointer"
+                            checked={isSel}
+                            onClick={(e) => e.stopPropagation()}
+                            onChange={() => {
+                              setSelected((prev) => {
+                                const next = new Set(prev);
+                                if (next.has(p.id)) next.delete(p.id);
+                                else next.add(p.id);
+                                return next;
+                              });
+                            }}
+                          />
+                        )}
+                        <span className="font-mono text-[11px] text-muted-foreground">
+                          #{p.numero_mapa}
+                        </span>
+                      </div>
                       <StatusBadge status={p.status} />
                     </div>
                     <p className="font-semibold text-sm text-foreground truncate">
@@ -402,7 +434,21 @@ export function PedidosList({
               )}
             >
               <TableRow className="hover:bg-transparent">
-                <SortableHead width="w-20 pl-5" sortKey="numero_mapa" current={sortBy} dir={sortDir} onClickAction={toggleSort}>
+                {selectable && (
+                  <TableHead className="w-10 pl-5">
+                    <input
+                      type="checkbox"
+                      aria-label="Selecionar todos"
+                      className="h-4 w-4 rounded accent-franzoni-orange cursor-pointer"
+                      checked={pedidos.length > 0 && pedidos.every((p) => selected.has(p.id))}
+                      onChange={(e) => {
+                        if (e.target.checked) setSelected(new Set(pedidos.map((p) => p.id)));
+                        else setSelected(new Set());
+                      }}
+                    />
+                  </TableHead>
+                )}
+                <SortableHead width={selectable ? 'w-16' : 'w-20 pl-5'} sortKey="numero_mapa" current={sortBy} dir={sortDir} onClickAction={toggleSort}>
                   Mapa
                 </SortableHead>
                 <SortableHead width="w-[28%] min-w-0" sortKey="cliente_nome" current={sortBy} dir={sortDir} onClickAction={toggleSort}>
@@ -423,7 +469,7 @@ export function PedidosList({
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="px-5">
+                  <TableCell colSpan={selectable ? 7 : 6} className="px-5">
                     <div className="space-y-2 py-2">
                       {Array.from({ length: 5 }).map((_, i) => (
                         <div key={i} className="h-9 rounded-md animate-pulse bg-muted/60" />
@@ -433,7 +479,7 @@ export function PedidosList({
                 </TableRow>
               ) : pedidos.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={6} className="py-16">
+                  <TableCell colSpan={selectable ? 7 : 6} className="py-16">
                     <div className="flex flex-col items-center gap-3 text-muted-foreground">
                       <Inbox className="h-10 w-10 opacity-40" />
                       <p className="text-sm">Nenhum pedido encontrado.</p>
@@ -448,13 +494,40 @@ export function PedidosList({
                       : mode === 'historico'
                       ? `/historico/${p.id}`
                       : `/vendas/${p.id}`;
+                  const isSel = selected.has(p.id);
                   return (
                     <TableRow
                       key={p.id}
-                      className="cursor-pointer hover:bg-franzoni-orange/5 transition-colors"
-                      onClick={() => router.push(href)}
+                      data-state={isSel ? 'selected' : undefined}
+                      className={cn(
+                        'cursor-pointer hover:bg-franzoni-orange/5 transition-colors',
+                        isSel && 'bg-franzoni-orange/10',
+                      )}
+                      onClick={(e) => {
+                        if ((e.target as HTMLElement).tagName === 'INPUT') return;
+                        router.push(href);
+                      }}
                     >
-                      <TableCell className="font-mono text-xs text-muted-foreground pl-5">
+                      {selectable && (
+                        <TableCell className="pl-5">
+                          <input
+                            type="checkbox"
+                            aria-label="Selecionar pedido"
+                            className="h-4 w-4 rounded accent-franzoni-orange cursor-pointer"
+                            checked={isSel}
+                            onClick={(e) => e.stopPropagation()}
+                            onChange={() => {
+                              setSelected((prev) => {
+                                const next = new Set(prev);
+                                if (next.has(p.id)) next.delete(p.id);
+                                else next.add(p.id);
+                                return next;
+                              });
+                            }}
+                          />
+                        </TableCell>
+                      )}
+                      <TableCell className={cn('font-mono text-xs text-muted-foreground', !selectable && 'pl-5')}>
                         #{p.numero_mapa}
                       </TableCell>
                       <TableCell className="font-medium text-foreground truncate" title={p.cliente_nome}>
@@ -494,6 +567,118 @@ export function PedidosList({
           </Table>
         </div>
       </ContentCard>
+
+      {selectable && selected.size > 0 && (
+        <BulkActionBar
+          ids={Array.from(selected)}
+          status={status}
+          onClear={() => setSelected(new Set())}
+        />
+      )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Barra flutuante de ações em lote
+// ---------------------------------------------------------------------------
+function BulkActionBar({
+  ids,
+  status,
+  onClear,
+}: {
+  ids: string[];
+  status: PedidoStatus | 'todos';
+  onClear: () => void;
+}) {
+  const [pending, start] = useTransition();
+  const router = useRouter();
+
+  function iniciar() {
+    start(async () => {
+      const r = await iniciarSeparacaoLoteAction(ids);
+      if ('error' in r) {
+        toast.error(r.error);
+        return;
+      }
+      toast.success(
+        `${r.updated} pedido${r.updated === 1 ? '' : 's'} → em separação`,
+      );
+      onClear();
+      router.refresh();
+    });
+  }
+
+  function finalizar() {
+    start(async () => {
+      const r = await finalizarLoteAction(ids);
+      if ('error' in r) {
+        toast.error(r.error);
+        return;
+      }
+      toast.success(
+        `${r.updated} pedido${r.updated === 1 ? '' : 's'} → finalizado`,
+      );
+      onClear();
+      router.refresh();
+    });
+  }
+
+  function imprimir() {
+    window.open(`/imprimir/lote?ids=${ids.join(',')}`, '_blank');
+  }
+
+  return (
+    <div className="fixed inset-x-0 bottom-4 px-4 z-40 pointer-events-none">
+      <div className="mx-auto max-w-3xl glass-elevated rounded-xl border border-franzoni-orange/30 shadow-2xl shadow-franzoni-orange/10 px-3 py-2 flex items-center gap-2 pointer-events-auto">
+        <span className="px-2 text-sm font-medium">
+          {ids.length} selecionado{ids.length === 1 ? '' : 's'}
+        </span>
+        <div className="h-5 w-px bg-border/60" />
+        {status === 'pendente' && (
+          <Button
+            size="sm"
+            onClick={iniciar}
+            disabled={pending}
+            className="bg-franzoni-orange hover:bg-franzoni-orange-600"
+          >
+            {pending ? (
+              <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+            ) : (
+              <Play className="h-3.5 w-3.5 mr-1" />
+            )}
+            Iniciar separação
+          </Button>
+        )}
+        {status === 'em_separacao' && (
+          <Button
+            size="sm"
+            onClick={finalizar}
+            disabled={pending}
+            className="bg-status-finalizado hover:bg-status-finalizado/90 text-white"
+          >
+            {pending ? (
+              <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />
+            ) : (
+              <CheckCircle2 className="h-3.5 w-3.5 mr-1" />
+            )}
+            Finalizar
+          </Button>
+        )}
+        <Button size="sm" variant="outline" onClick={imprimir} disabled={pending}>
+          <Printer className="h-3.5 w-3.5 mr-1" />
+          Imprimir {ids.length}
+        </Button>
+        <Button
+          size="icon"
+          variant="ghost"
+          onClick={onClear}
+          aria-label="Limpar seleção"
+          className="h-8 w-8 ml-auto"
+        >
+          <X className="h-4 w-4" />
+        </Button>
+      </div>
     </div>
   );
 }

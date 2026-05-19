@@ -50,6 +50,7 @@ export default async function LogisticaPage({
           hideStatusFilter
           showNewButton={false}
           bounded
+          selectable={status === 'pendente' || status === 'em_separacao'}
         />
       </Suspense>
     </div>

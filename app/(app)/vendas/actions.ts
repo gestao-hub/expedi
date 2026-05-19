@@ -189,6 +189,48 @@ export async function finalizarPedidoAction(id: string) {
   return { ok: true as const };
 }
 
+/**
+ * Logística — lote: marca vários como em_separacao (só os que estão pendentes).
+ * Retorna { updated } com a quantidade efetivamente atualizada.
+ */
+export async function iniciarSeparacaoLoteAction(ids: string[]) {
+  if (!Array.isArray(ids) || ids.length === 0) return { error: 'Nenhum pedido selecionado' };
+  if (ids.length > 100) return { error: 'Máximo 100 pedidos por lote' };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('pedidos')
+    .update({ status: 'em_separacao' })
+    .in('id', ids)
+    .eq('status', 'pendente')
+    .select('id');
+  if (error) return { error: error.message };
+
+  revalidatePath('/logistica');
+  return { ok: true as const, updated: (data ?? []).length };
+}
+
+/**
+ * Logística — lote: marca vários como finalizado (só os que estão em_separacao).
+ */
+export async function finalizarLoteAction(ids: string[]) {
+  if (!Array.isArray(ids) || ids.length === 0) return { error: 'Nenhum pedido selecionado' };
+  if (ids.length > 100) return { error: 'Máximo 100 pedidos por lote' };
+
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('pedidos')
+    .update({ status: 'finalizado' })
+    .in('id', ids)
+    .eq('status', 'em_separacao')
+    .select('id');
+  if (error) return { error: error.message };
+
+  revalidatePath('/logistica');
+  revalidatePath('/historico');
+  return { ok: true as const, updated: (data ?? []).length };
+}
+
 export async function redirectToVendas() {
   redirect('/vendas');
 }
