@@ -17,6 +17,7 @@ import {
   History,
   Users,
   LogOut,
+  Lightbulb,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 
@@ -27,11 +28,13 @@ const NAV: Record<UserRole, NavItem[]> = {
     { label: 'Meus Pedidos', href: '/vendas',      icon: Package },
     { label: 'Novo Pedido',  href: '/vendas/novo', icon: PackagePlus },
     { label: 'Histórico',    href: '/historico',   icon: History },
+    { label: 'Tutorial',     href: '/tutorial',    icon: Lightbulb },
   ],
   logistica: [
     { label: 'Fila',         href: '/logistica',                       icon: TruckIcon },
     { label: 'Em Separação', href: '/logistica?status=em_separacao',  icon: ScanLine },
     { label: 'Histórico',    href: '/historico',                       icon: History },
+    { label: 'Tutorial',     href: '/tutorial',                        icon: Lightbulb },
   ],
   admin: [
     { label: 'Dashboard',    href: '/admin',          icon: LayoutDashboard },
@@ -40,6 +43,7 @@ const NAV: Record<UserRole, NavItem[]> = {
     { label: 'Logística',    href: '/logistica',      icon: TruckIcon },
     { label: 'Histórico',    href: '/historico',      icon: History },
     { label: 'Usuários',     href: '/admin/usuarios', icon: Users },
+    { label: 'Tutorial',     href: '/tutorial',       icon: Lightbulb },
   ],
 };
 

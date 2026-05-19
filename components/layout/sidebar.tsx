@@ -13,6 +13,7 @@ import {
   LogOut,
   Moon,
   Sun,
+  Lightbulb,
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { cn } from '@/lib/utils';
@@ -39,6 +40,10 @@ const NAV: Record<UserRole, NavSection[]> = {
       title: 'Consulta',
       items: [{ label: 'Histórico', href: '/historico', icon: History }],
     },
+    {
+      title: 'Ajuda',
+      items: [{ label: 'Tutorial', href: '/tutorial', icon: Lightbulb }],
+    },
   ],
   logistica: [
     {
@@ -51,6 +56,10 @@ const NAV: Record<UserRole, NavSection[]> = {
     {
       title: 'Consulta',
       items: [{ label: 'Histórico', href: '/historico', icon: History }],
+    },
+    {
+      title: 'Ajuda',
+      items: [{ label: 'Tutorial', href: '/tutorial', icon: Lightbulb }],
     },
   ],
   admin: [
@@ -73,6 +82,10 @@ const NAV: Record<UserRole, NavSection[]> = {
     {
       title: 'Admin',
       items: [{ label: 'Usuários', href: '/admin/usuarios', icon: Users }],
+    },
+    {
+      title: 'Ajuda',
+      items: [{ label: 'Tutorial', href: '/tutorial', icon: Lightbulb }],
     },
   ],
 };
