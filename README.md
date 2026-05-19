@@ -148,6 +148,50 @@ npx vercel deploy --prod
 Depois, no **Supabase Dashboard → Authentication → URL Configuration**:
 adicionar a URL de produção em **Site URL** e **Redirect URLs**.
 
+## Permissões (RBAC)
+
+A app tem defesa em duas camadas:
+1. **Layouts gate** (`app/(app)/{vendas,logistica,admin}/layout.tsx`) chamam
+   `requireRole()` no servidor. Quem não tem o role é redirecionado pro home
+   do role real (admin→/admin, logistica→/logistica, vendedor→/vendas).
+2. **RLS no Supabase** filtra linhas por `auth.uid()` e `current_user_role()`
+   — defesa em profundidade caso o gate seja contornado.
+
+### Matriz oficial
+
+| Rota | admin | vendedor | logistica |
+|---|:---:|:---:|:---:|
+| `/vendas`, `/vendas/novo`, `/vendas/[id]` | ✅ todos | ✅ próprios | ❌ redirect /logistica |
+| `/logistica`, `/logistica/[id]` | ✅ | ❌ redirect /vendas | ✅ |
+| `/historico`, `/historico/[id]` | ✅ | ✅ próprios | ✅ todos |
+| `/admin`, `/admin/usuarios` | ✅ | ❌ redirect /vendas | ❌ redirect /logistica |
+| `/imprimir/[id]` | ✅ | ✅ próprios | ✅ |
+| `POST /api/parse-pdf` | ✅ | ✅ | ❌ |
+| Alterar role de outro usuário | ✅ | ❌ | ❌ |
+| Cancelar pedido | ✅ (qualquer) | ✅ (próprio rascunho/pendente) | ❌ |
+| Iniciar separação / finalizar | ✅ | ❌ | ✅ |
+
+Pra adicionar uma rota nova com gate por role, basta envolver com:
+```ts
+// app/(app)/<nova-area>/layout.tsx
+import { requireRole } from '@/lib/auth/require-role';
+export default async function Layout({ children }) {
+  await requireRole(['admin', 'logistica']); // etc.
+  return <>{children}</>;
+}
+```
+
+## QA automatizado (Playwright)
+
+Pasta [qa/](qa/) tem suite completa: smoke + RBAC + upload CRUD + visual em 5 viewports.
+
+```bash
+cd qa && npm install && npm run qa:install   # 1ª vez
+npm run qa:full     # tudo (~6min, 148 testes)
+npm run qa:rbac     # só RBAC
+npm run qa:report   # abre HTML da última run
+```
+
 ## Decisões de design
 
 - **Multi-tenant não é objetivo** — uma instalação por empresa.

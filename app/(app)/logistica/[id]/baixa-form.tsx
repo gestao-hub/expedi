@@ -1,5 +1,6 @@
 'use client';
 
+import * as React from 'react';
 import { useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { useForm } from 'react-hook-form';
@@ -149,10 +150,25 @@ export function BaixaForm({
 }
 
 function FormField({ label, children }: { label: string; children: React.ReactNode }) {
+  const generatedId = React.useId();
+  const child = React.isValidElement(children)
+    ? React.cloneElement(children as React.ReactElement<{ id?: string }>, {
+        id:
+          (children as React.ReactElement<{ id?: string }>).props.id ?? generatedId,
+      })
+    : children;
+  const htmlFor =
+    React.isValidElement(children) &&
+    ((children as React.ReactElement<{ id?: string }>).props.id ?? generatedId);
   return (
     <div>
-      <Label className="text-xs text-muted-foreground mb-1.5 block">{label}</Label>
-      {children}
+      <Label
+        htmlFor={htmlFor || undefined}
+        className="text-xs text-muted-foreground mb-1.5 block"
+      >
+        {label}
+      </Label>
+      {child}
     </div>
   );
 }

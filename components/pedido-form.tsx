@@ -1,6 +1,7 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
+import * as React from 'react';
 import { useTransition } from 'react';
 import { Controller, useFieldArray, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -322,12 +323,29 @@ function Field({
   className?: string;
   children: React.ReactNode;
 }) {
+  const generatedId = React.useId();
+  // Se o child é um elemento que aceita `id` (Input, select etc.), clona com id
+  // pra que <Label htmlFor=id> aponte corretamente — acessibilidade + RTL screen
+  // readers + getByLabel em testes. Controller (RHF) é ignorado de propósito:
+  // o id não propagaria pro DatePicker interno.
+  const child = React.isValidElement(children)
+    ? React.cloneElement(children as React.ReactElement<{ id?: string }>, {
+        id:
+          (children as React.ReactElement<{ id?: string }>).props.id ?? generatedId,
+      })
+    : children;
+  const htmlFor =
+    React.isValidElement(children) &&
+    ((children as React.ReactElement<{ id?: string }>).props.id ?? generatedId);
   return (
     <div className={className}>
-      <Label className="text-xs text-muted-foreground mb-1.5 block">
+      <Label
+        htmlFor={htmlFor || undefined}
+        className="text-xs text-muted-foreground mb-1.5 block"
+      >
         {label} {required && <span className="text-destructive">*</span>}
       </Label>
-      {children}
+      {child}
     </div>
   );
 }
