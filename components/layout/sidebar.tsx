@@ -101,11 +101,33 @@ function initials(name: string) {
   );
 }
 
+/**
+ * Encontra o item de menu que corresponde ao pathname atual com o
+ * prefixo MAIS LONGO. Evita o caso em que /admin (dashboard) e
+ * /admin/usuarios ficam ambos ativos quando você está em /admin/usuarios.
+ */
+function findActiveHref(pathname: string, sections: NavSection[]): string | null {
+  let bestHref: string | null = null;
+  let bestLen = -1;
+  for (const section of sections) {
+    for (const item of section.items) {
+      const target = item.href.split('?')[0];
+      const matches = pathname === target || (target !== '/' && pathname.startsWith(target + '/'));
+      if (matches && target.length > bestLen) {
+        bestLen = target.length;
+        bestHref = item.href;
+      }
+    }
+  }
+  return bestHref;
+}
+
 export function Sidebar() {
   const { profile } = useUser();
   const pathname = usePathname();
   const { setTheme, resolvedTheme } = useTheme();
   const sections = NAV[profile.role] ?? NAV.vendedor;
+  const activeHref = findActiveHref(pathname, sections);
 
   return (
     <aside className="hidden md:flex w-64 shrink-0 flex-col sidebar-surface text-white">
@@ -123,10 +145,7 @@ export function Sidebar() {
             <p className="nav-section-label">{section.title}</p>
             <ul className="space-y-1">
               {section.items.map((item) => {
-                const targetPath = item.href.split('?')[0];
-                const active =
-                  pathname === targetPath ||
-                  (targetPath !== '/' && pathname.startsWith(targetPath + '/'));
+                const active = item.href === activeHref;
                 const Icon = item.icon;
                 return (
                   <li key={item.href}>

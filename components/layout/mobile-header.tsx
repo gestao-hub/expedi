@@ -91,10 +91,17 @@ export function MobileHeader() {
             </div>
 
             <nav className="flex-1 py-3 space-y-1 overflow-y-auto">
-              {items.map((item) => {
-                const target = item.href.split('?')[0];
-                const active =
-                  pathname === target || (target !== '/' && pathname.startsWith(target + '/'));
+              {(() => {
+                // Calcula o href ativo pelo prefixo mais longo
+                let bestHref: string | null = null;
+                let bestLen = -1;
+                for (const it of items) {
+                  const t = it.href.split('?')[0];
+                  const m = pathname === t || (t !== '/' && pathname.startsWith(t + '/'));
+                  if (m && t.length > bestLen) { bestLen = t.length; bestHref = it.href; }
+                }
+                return items.map((item) => {
+                const active = item.href === bestHref;
                 const Icon = item.icon;
                 return (
                   <Link
@@ -108,7 +115,8 @@ export function MobileHeader() {
                     <span className="truncate">{item.label}</span>
                   </Link>
                 );
-              })}
+                });
+              })()}
             </nav>
 
             <form action="/auth/signout" method="post" className="p-3 border-t border-white/8">
