@@ -62,6 +62,42 @@ export type Database = {
         }
         Relationships: []
       }
+      motoristas: {
+        Row: {
+          ativo: boolean
+          cnh: string | null
+          cpf: string | null
+          created_at: string
+          id: string
+          nome: string
+          observacoes: string | null
+          telefone: string | null
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          cnh?: string | null
+          cpf?: string | null
+          created_at?: string
+          id?: string
+          nome: string
+          observacoes?: string | null
+          telefone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          cnh?: string | null
+          cpf?: string | null
+          created_at?: string
+          id?: string
+          nome?: string
+          observacoes?: string | null
+          telefone?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       pedido_eventos: {
         Row: {
           created_at: string
@@ -395,6 +431,42 @@ export type Database = {
           full_name?: string
           id?: string
           role?: Database["public"]["Enums"]["user_role"]
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      veiculos: {
+        Row: {
+          ativo: boolean
+          capacidade_kg: number | null
+          created_at: string
+          id: string
+          marca: string | null
+          modelo: string | null
+          observacoes: string | null
+          placa: string
+          updated_at: string
+        }
+        Insert: {
+          ativo?: boolean
+          capacidade_kg?: number | null
+          created_at?: string
+          id?: string
+          marca?: string | null
+          modelo?: string | null
+          observacoes?: string | null
+          placa: string
+          updated_at?: string
+        }
+        Update: {
+          ativo?: boolean
+          capacidade_kg?: number | null
+          created_at?: string
+          id?: string
+          marca?: string | null
+          modelo?: string | null
+          observacoes?: string | null
+          placa?: string
           updated_at?: string
         }
         Relationships: []

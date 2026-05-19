@@ -19,7 +19,13 @@ export default async function LogisticaDetailPage({
   const { id } = await params;
   const supabase = await createClient();
 
-  const [{ data: pedido }, { data: pontosRaw }, { data: logistica }] = await Promise.all([
+  const [
+    { data: pedido },
+    { data: pontosRaw },
+    { data: logistica },
+    { data: motoristas },
+    { data: veiculos },
+  ] = await Promise.all([
     supabase.from('pedidos').select('*').eq('id', id).single(),
     supabase
       .from('pedido_pontos_retirada')
@@ -27,6 +33,8 @@ export default async function LogisticaDetailPage({
       .eq('pedido_id', id)
       .order('ordem'),
     supabase.from('pedido_logistica').select('*').eq('pedido_id', id).maybeSingle(),
+    supabase.from('motoristas').select('nome').eq('ativo', true).order('nome'),
+    supabase.from('veiculos').select('placa, modelo').eq('ativo', true).order('placa'),
   ]);
 
   if (!pedido) notFound();
@@ -106,7 +114,13 @@ export default async function LogisticaDetailPage({
         vendedor={vendedor}
       />
 
-      <BaixaForm pedidoId={id} status={pedido.status} defaultValues={defaults} />
+      <BaixaForm
+        pedidoId={id}
+        status={pedido.status}
+        defaultValues={defaults}
+        motoristas={(motoristas ?? []) as { nome: string }[]}
+        veiculos={(veiculos ?? []) as { placa: string; modelo: string | null }[]}
+      />
     </>
   );
 }
