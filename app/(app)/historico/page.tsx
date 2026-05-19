@@ -2,7 +2,9 @@ import { PageHeader } from '@/components/layout/page-header';
 import { PedidosList } from '@/components/pedidos-list';
 import { ContentCard } from '@/components/layout/content-card';
 import { createClient } from '@/lib/supabase/server';
-import { CheckCircle2, DollarSign, UsersRound } from 'lucide-react';
+import { CheckCircle2, DollarSign, UsersRound, Download } from 'lucide-react';
+import { buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -30,7 +32,18 @@ export default async function HistoricoPage() {
 
   return (
     <div className="flex flex-col flex-1 min-h-0 gap-4">
-      <PageHeader title="Histórico" description="Pedidos finalizados e indicadores acumulados." />
+      <PageHeader
+        title="Histórico"
+        description="Pedidos finalizados e indicadores acumulados."
+        actions={
+          <a
+            href="/historico/export?status=finalizado"
+            className={cn(buttonVariants({ variant: 'outline' }))}
+          >
+            <Download className="h-4 w-4 mr-1" /> Exportar CSV
+          </a>
+        }
+      />
 
       <div className="grid grid-cols-3 gap-3 shrink-0">
         <Kpi
