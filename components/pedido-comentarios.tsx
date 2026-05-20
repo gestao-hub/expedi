@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { ContentCard, ContentCardTitle } from '@/components/layout/content-card';
+import { useConfirm } from '@/components/providers/confirm-provider';
 import { createClient } from '@/lib/supabase/client';
 import {
   addComentarioAction,
@@ -45,6 +46,7 @@ export function PedidoComentarios({
   currentUserId: string;
 }) {
   const supabase = useMemo(() => createClient(), []);
+  const confirm = useConfirm();
   const [comentarios, setComentarios] = useState<Comentario[]>(initial);
   const [texto, setTexto] = useState('');
   const [sending, startSend] = useTransition();
@@ -95,8 +97,14 @@ export function PedidoComentarios({
     });
   }
 
-  function remove(id: string) {
-    if (!window.confirm('Excluir este comentário?')) return;
+  async function remove(id: string) {
+    const ok = await confirm({
+      title: 'Excluir este comentário?',
+      description: 'Esta ação não pode ser desfeita.',
+      confirmText: 'Excluir',
+      variant: 'destructive',
+    });
+    if (!ok) return;
     deleteComentarioAction(id, pedidoId).then((r) => {
       if ('error' in r) toast.error(r.error);
     });

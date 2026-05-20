@@ -25,6 +25,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { SortableHead, type SortDir } from '@/components/ui/sortable-head';
+import { useConfirm } from '@/components/providers/confirm-provider';
 import {
   updateClienteAction,
   deleteClienteAction,
@@ -214,18 +215,25 @@ function DeleteButton({
   onDone: () => void;
 }) {
   const [pending, start] = useTransition();
+  const confirm = useConfirm();
   return (
     <Button
       variant="ghost"
       size="icon"
       className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
       disabled={pending}
-      onClick={() => {
-        const msg =
+      onClick={async () => {
+        const description =
           count > 0
-            ? `Cliente tem ${count} pedido${count === 1 ? '' : 's'} vinculado${count === 1 ? '' : 's'}. Os pedidos não serão apagados, mas perderão o vínculo. Continuar?`
-            : 'Excluir este cliente?';
-        if (!window.confirm(msg)) return;
+            ? `Cliente tem ${count} pedido${count === 1 ? '' : 's'} vinculado${count === 1 ? '' : 's'}. Os pedidos não serão apagados, mas perderão o vínculo.`
+            : 'Esta ação não pode ser desfeita.';
+        const ok = await confirm({
+          title: 'Excluir este cliente?',
+          description,
+          confirmText: 'Excluir',
+          variant: 'destructive',
+        });
+        if (!ok) return;
         start(async () => {
           const r = await deleteClienteAction(id);
           if ('error' in r) toast.error(r.error);

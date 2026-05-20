@@ -37,6 +37,7 @@ import { ContentCard } from '@/components/layout/content-card';
 import { SortableHead, type SortDir } from '@/components/ui/sortable-head';
 import { DatePicker } from '@/components/ui/date-picker';
 import { StatusBadge } from '@/components/status-badge';
+import { useConfirm } from '@/components/providers/confirm-provider';
 import { createClient } from '@/lib/supabase/client';
 import type { Pedido, PedidoStatus } from '@/lib/types';
 import {
@@ -713,6 +714,7 @@ function InlineStatusActions({
 }) {
   const [pending, start] = useTransition();
   const router = useRouter();
+  const confirm = useConfirm();
   const stop = (e: React.MouseEvent) => e.stopPropagation();
 
   function iniciar(e: React.MouseEvent) {
@@ -727,9 +729,14 @@ function InlineStatusActions({
     });
   }
 
-  function finalizar(e: React.MouseEvent) {
+  async function finalizar(e: React.MouseEvent) {
     stop(e);
-    if (!window.confirm('Marcar como entregue total? Use o detalhe pra registrar entrega parcial.')) return;
+    const ok = await confirm({
+      title: 'Marcar como entregue total?',
+      description: 'Todos os itens serão considerados entregues. Para registrar entrega parcial, use o detalhe do pedido.',
+      confirmText: 'Marcar finalizado',
+    });
+    if (!ok) return;
     start(async () => {
       const r = await finalizarPedidoAction(pedidoId);
       if ('error' in r) toast.error(r.error);

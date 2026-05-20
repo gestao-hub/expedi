@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Inter, Outfit } from 'next/font/google';
 import { Toaster } from '@/components/ui/sonner';
 import { ThemeProvider } from '@/components/providers/theme-provider';
+import { ConfirmProvider } from '@/components/providers/confirm-provider';
 import './globals.css';
 
 const inter = Inter({
@@ -30,8 +31,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     >
       <body className="min-h-full flex flex-col bg-background text-foreground font-sans">
         <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
-          {children}
-          <Toaster position="top-right" richColors closeButton />
+          <ConfirmProvider>
+            {children}
+            <Toaster position="top-right" richColors closeButton />
+          </ConfirmProvider>
         </ThemeProvider>
       </body>
     </html>
