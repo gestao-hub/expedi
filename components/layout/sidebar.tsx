@@ -139,9 +139,9 @@ export function Sidebar() {
       </div>
 
       {/* Nav — itens em card-glass com seções */}
-      <nav className="flex-1 py-2 overflow-y-auto">
+      <nav className="flex-1 py-2 overflow-y-auto sidebar-nav">
         {sections.map((section, sIdx) => (
-          <div key={section.title} className={cn('px-2', sIdx > 0 && 'mt-1.5')}>
+          <div key={section.title} className={cn('px-2', sIdx > 0 && 'mt-1')}>
             <p className="nav-section-label">{section.title}</p>
             <ul className="space-y-1">
               {section.items.map((item) => {
