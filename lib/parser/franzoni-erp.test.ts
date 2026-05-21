@@ -8,6 +8,15 @@ const fixture = readFileSync(
   'utf-8',
 );
 
+// L4079: PDF real (unpdf wall-of-text) com variações que quebravam o parser:
+//  - CNPJ/CPF vazio "()"
+//  - referência "Diversos (Ref.NNNN)" INLINE entre descrição e quantidade
+//  - "Forma de Pagamento:" vazio seguido direto de "Observação:"
+const fixtureL4079 = readFileSync(
+  resolve(__dirname, '../../tests/fixtures/pedido-L4079.txt'),
+  'utf-8',
+);
+
 describe('helpers', () => {
   it('brNumber: aceita BR e devolve 0 para vazio', () => {
     expect(brNumber('16,79')).toBe(16.79);
@@ -105,5 +114,41 @@ describe('robustez', () => {
     expect(r.valor_total).toBe(16.79);
     expect(r.pontos_retirada[0].itens).toHaveLength(1);
     expect(r.pontos_retirada[0].itens[0].codigo).toBe('5005');
+  });
+});
+
+describe('parseFranzoniErp — fixture pedido L4079 (variações do ERP real)', () => {
+  const r = parseFranzoniErp(fixtureL4079);
+
+  it('cliente com CNPJ/CPF vazio "()" — ainda extrai código e nome', () => {
+    expect(r.cliente.codigo).toBe('91');
+    expect(r.cliente.nome).toBe('BRUNO BOVO');
+    expect(r.cliente.cnpj_cpf).toBeUndefined();
+    expect(r.cliente.cidade).toBe('APUCARANA');
+    expect(r.cliente.uf).toBe('PR');
+    expect(r.cliente.bairro).toBe('Jardim Tibagi');
+  });
+
+  it('item com "Diversos (Ref.NNNN)" inline entre descrição e quantidade', () => {
+    expect(r.pontos_retirada[0].itens).toHaveLength(1);
+    const item = r.pontos_retirada[0].itens[0];
+    expect(item.codigo).toBe('3028');
+    expect(item.descricao).toBe('REFRIGERANTE COCA-COLA 2L');
+    expect(item.quantidade).toBe(1);
+    expect(item.unidade).toBe('UN');
+    expect(item.preco_unitario).toBe(8.52);
+    expect(item.total).toBe(8.52);
+    expect(item.referencia).toBe('56578');
+  });
+
+  it('Forma de Pagamento vazio não engole a Observação', () => {
+    expect(r.forma_pagamento).toBeUndefined();
+    expect(r.parcelas).toBeUndefined();
+    expect(r.observacoes).toBe('LEONARDO VIADAO');
+  });
+
+  it('documento e valor total', () => {
+    expect(r.documento_erp).toBe('L4079');
+    expect(r.valor_total).toBe(8.52);
   });
 });

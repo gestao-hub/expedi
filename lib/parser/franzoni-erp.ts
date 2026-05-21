@@ -89,14 +89,17 @@ const RX = {
   documento:  /N[uú]mero\s+do\s+documento\s*:?\s*([A-Z0-9.\-]+)/i,
   // fallback: pega o "N. L4077" do cabeçalho se a linha "Número do documento" sumir
   documentoCab: /PEDIDO\s+DE\s+VENDA\s*-\s*N\.?\s*([A-Z0-9.\-]+)/i,
-  cliente:    /Cliente\s+(\d+)\s*-\s*([^\n(]+?)\s*\(\s*([\d./-]+)\s*\)/i,
+  // CNPJ/CPF pode vir vazio "()" — grupo 3 com * (não +) pra não falhar o match inteiro
+  cliente:    /Cliente\s+(\d+)\s*-\s*([^\n(]+?)\s*\(\s*([\d./-]*)\s*\)/i,
   // Endereço termina em CEP, Telefone, Produto ou fim — quebra sem precisar de \n
   // Usa [\s\S] em vez de . pra cobrir multilinha sem depender da flag /s (es2018+)
   endereco:   /Endere[cç]o\s*:\s*([\s\S]+?)(?=\s*(?:CEP\s*:|Telefone\s*:|Produto\b|$))/i,
   cep:        /CEP\s*:?\s*(\d{5}-?\d{3})\s*-\s*([^-\n]+?)\s*-\s*([A-Z]{2})\b/i,
   telefone:   /Telefone\s*:?\s*(\(?\d{2}\)?\s*\d{4,5}[-\s]?\d{4})/i,
   total:      /(?:^|\s)Total\s+([\d.]+,\d{2})(?=\s+Forma\s+de\s+Pagamento|\s*$|\s*\n)/i,
-  formaPagto: /Forma\s+de\s+Pagamento\s*:?\s*([\s\S]+?)(?=\s*(?:Observa[cç][aã]o\s*:|É\s+vedada|$))/i,
+  // *? (não +?) pra aceitar Forma de Pagamento VAZIA — senão o lazy pula pro
+  // próximo anchor e engole "Observação: ..."
+  formaPagto: /Forma\s+de\s+Pagamento\s*:?\s*([\s\S]*?)(?=\s*(?:Observa[cç][aã]o\s*:|É\s+vedada|$))/i,
   observacao: /Observa[cç][aã]o\s*:?\s*([\s\S]+?)(?=\s*(?:É\s+vedada|$))/i,
   // item: cód + descrição + " - " + qtd + unidade + 3 valores monetários
   item:       /^(\d{3,})\s+(.+?)\s+-\s+(\d+(?:[.,]\d+)?)\s+([A-Z]{1,3})\s+([\d.]+,\d{2})\s+([\d.]+,\d{2})\s+([\d.]+,\d{2})\s*$/gm,
@@ -114,7 +117,7 @@ function parseCliente(text: string): ClienteParsed {
   if (m) {
     out.codigo   = m[1];
     out.nome     = m[2].trim();
-    out.cnpj_cpf = m[3].trim();
+    out.cnpj_cpf = m[3].trim() || undefined;
   }
 
   const e = firstMatch(text, RX.endereco);
@@ -159,26 +162,34 @@ function parseItens(text: string): ItemParsed[] {
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
-    const m = line.match(/^(\d{3,})\s+(.+?)\s+-\s+(\d+(?:[.,]\d+)?)\s+([A-Z]{1,3})\s+([\d.]+,\d{2})\s+([\d.]+,\d{2})\s+([\d.]+,\d{2})\s*$/);
+    // grupos: 1=código 2=descrição 3=ref inline (opcional) 4=qtd 5=un 6=preço 7=desc 8=total
+    const m = line.match(
+      /^(\d{3,})\s+(.+?)\s+-\s+(?:Diversos\s*\(\s*Ref\.?\s*([^)]*?)\s*\)\s+)?(\d+(?:[.,]\d+)?)\s+([A-Z]{1,3})\s+([\d.]+,\d{2})\s+([\d.]+,\d{2})\s+([\d.]+,\d{2})\s*$/,
+    );
     if (!m) continue;
 
     const item: ItemParsed = {
       codigo:         m[1],
       descricao:      m[2].trim(),
-      quantidade:     brNumber(m[3]),
-      unidade:        m[4],
-      preco_unitario: brNumber(m[5]),
-      desconto:       brNumber(m[6]),
-      total:          brNumber(m[7]),
+      quantidade:     brNumber(m[4]),
+      unidade:        m[5],
+      preco_unitario: brNumber(m[6]),
+      desconto:       brNumber(m[7]),
+      total:          brNumber(m[8]),
     };
 
-    // próxima linha pode ser "Diversos (Ref. X)" — captura como referência
-    const next = lines[i + 1]?.trim();
-    if (next) {
-      const refM = next.match(/^Diversos\s*\(\s*Ref\.?\s*([^)]*?)\s*\)\s*$/i);
-      if (refM) {
-        item.referencia = refM[1].trim() || 'Diversos';
-        i++; // consome a linha de ref
+    // ref inline ("- Diversos (Ref.56578) ..." no L4079)
+    if (m[3] !== undefined) {
+      item.referencia = m[3].trim() || 'Diversos';
+    } else {
+      // senão, próxima linha pode ser "Diversos (Ref. X)" (trailing, L4077)
+      const next = lines[i + 1]?.trim();
+      if (next) {
+        const refM = next.match(/^Diversos\s*\(\s*Ref\.?\s*([^)]*?)\s*\)\s*$/i);
+        if (refM) {
+          item.referencia = refM[1].trim() || 'Diversos';
+          i++; // consome a linha de ref
+        }
       }
     }
 
@@ -196,6 +207,7 @@ function parseFormaPagamento(text: string): { forma_pagamento?: string; parcelas
   const m = firstMatch(text, RX.formaPagto);
   if (!m) return {};
   const raw = m[1].trim();
+  if (!raw) return {}; // "Forma de Pagamento:" vazio
   // trailing "10x" / "1x" / "12x" = parcelas
   const pm = raw.match(/^(.*?)\s+(\d+x)\s*$/);
   if (pm) {
@@ -238,8 +250,13 @@ function normalizeBreaks(text: string): string {
   out = out.replace(/(Produto\s+Quantidade[^\n]*?Total)\s+(?=\d{3,}\s+\S)/g, '$1\n');
   // Entre itens: <num>,<dd> seguido de espaço + código (3+ dígitos)
   out = out.replace(/(\d+[.,]\d{2})\s+(?=\d{3,}\s+\S)/g, '$1\n');
-  // "Diversos (Ref. ...)" sempre numa linha própria
-  out = out.replace(/\s+(Diversos\s*\(\s*Ref\.?)/g, '\n$1');
+  // "Diversos (Ref. ...)" TRAILING numa linha própria (caso do L4077, ref no
+  // fim). NÃO quebrar quando vier inline no item (L4079: "...2L - Diversos
+  // (Ref.56578) 1 UN 8,52..."), detectado pelo lookahead de qtd+unidade após o ")".
+  out = out.replace(
+    /\s+(Diversos\s*\([^)]*\))(?!\s+\d+(?:[.,]\d+)?\s+[A-Za-z]{1,3}\b)/g,
+    '\n$1',
+  );
   // "Total <valor>" final (após itens) numa linha própria
   out = out.replace(/\s+(Total\s+\d+[.,]\d{2})/g, '\n$1');
   return out;
