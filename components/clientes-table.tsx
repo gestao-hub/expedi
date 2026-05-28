@@ -26,6 +26,7 @@ import {
 } from '@/components/ui/dialog';
 import { SortableHead, type SortDir } from '@/components/ui/sortable-head';
 import { useConfirm } from '@/components/providers/confirm-provider';
+import { EnderecosManager } from '@/components/clientes/enderecos-manager';
 import {
   updateClienteAction,
   deleteClienteAction,
@@ -345,6 +346,9 @@ function EditDialog({
               onChange={(e) => set('observacoes')(e.target.value || null)}
             />
           </Field>
+        </div>
+        <div className="pt-2 mt-2 border-t border-border/60">
+          <EnderecosManager clienteId={cliente.id} />
         </div>
         <DialogFooter>
           <Button variant="outline" onClick={onClose} disabled={pending}>

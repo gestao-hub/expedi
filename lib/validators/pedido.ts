@@ -41,6 +41,7 @@ export const pedidoFormSchema = z.object({
   cliente_uf:       z.string().max(2).nullable().optional(),
   cliente_cep:      z.string().max(SHORT).nullable().optional(),
   cliente_telefone: z.string().max(SHORT).nullable().optional(),
+  cliente_endereco_id: z.uuid().nullable().optional(),
   forma_pagamento:  z.string().max(LONG).nullable().optional(),
   parcelas:         z.string().max(SHORT).nullable().optional(),
   valor_total:      z.number().nonnegative(),

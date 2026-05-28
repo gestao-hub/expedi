@@ -17,6 +17,7 @@ import { Separator } from '@/components/ui/separator';
 import { criarPedidoAction } from '@/app/(app)/vendas/actions';
 import { pedidoFormSchema, type PedidoFormInput } from '@/lib/validators/pedido';
 import { DatePicker } from '@/components/ui/date-picker';
+import { EnderecoSelector } from '@/components/clientes/endereco-selector';
 
 type ErrorLeaf = { path: string; message: string };
 function collectErrorLeaves(node: unknown, prefix = ''): ErrorLeaf[] {
@@ -48,7 +49,17 @@ export function PedidoForm({ defaultValues }: { defaultValues: PedidoFormInput }
     resolver: zodResolver(pedidoFormSchema),
     defaultValues,
   });
-  const { control, register, handleSubmit, watch, formState: { errors } } = form;
+  const { control, register, handleSubmit, watch, setValue, formState: { errors } } = form;
+  const cnpjCpfWatch = watch('cliente_cnpj_cpf');
+  const enderecoIdWatch = watch('cliente_endereco_id');
+  const endValues = {
+    endereco: watch('cliente_endereco') ?? null,
+    bairro:   watch('cliente_bairro')   ?? null,
+    cidade:   watch('cliente_cidade')   ?? null,
+    uf:       watch('cliente_uf')       ?? null,
+    cep:      watch('cliente_cep')      ?? null,
+    telefone: watch('cliente_telefone') ?? null,
+  };
   const { fields: pontos, append: addPonto, remove: removePonto } = useFieldArray({
     control,
     name: 'pontos_retirada',
@@ -151,6 +162,25 @@ export function PedidoForm({ defaultValues }: { defaultValues: PedidoFormInput }
           <Field label="CNPJ/CPF" className="md:col-span-2">
             <Input {...register('cliente_cnpj_cpf')} />
           </Field>
+
+          <EnderecoSelector
+            cnpjCpf={cnpjCpfWatch}
+            selectedId={enderecoIdWatch}
+            currentValues={endValues}
+            onPickAction={(ende) => {
+              if (ende) {
+                setValue('cliente_endereco_id', ende.id, { shouldDirty: true });
+                setValue('cliente_endereco', ende.endereco ?? '', { shouldDirty: true });
+                setValue('cliente_bairro',   ende.bairro   ?? '', { shouldDirty: true });
+                setValue('cliente_cidade',   ende.cidade   ?? '', { shouldDirty: true });
+                setValue('cliente_uf',       ende.uf       ?? '', { shouldDirty: true });
+                setValue('cliente_cep',      ende.cep      ?? '', { shouldDirty: true });
+                setValue('cliente_telefone', ende.telefone ?? '', { shouldDirty: true });
+              } else {
+                setValue('cliente_endereco_id', null, { shouldDirty: true });
+              }
+            }}
+          />
 
           <Field label="Endereço" className="md:col-span-3">
             <Input {...register('cliente_endereco')} />
@@ -257,6 +287,23 @@ export function PedidoForm({ defaultValues }: { defaultValues: PedidoFormInput }
             <Field label="Forma de Pagamento">
               <Input {...register('forma_pagamento')} placeholder="ENTREGA A RECEBER" />
             </Field>
+            <label className="flex items-center gap-2 -mt-1.5 text-sm cursor-pointer select-none">
+              <input
+                type="checkbox"
+                className="h-4 w-4 rounded accent-franzoni-orange cursor-pointer"
+                checked={(watch('forma_pagamento') ?? '') === 'ENTREGA A RECEBER'}
+                onChange={(e) => {
+                  setValue(
+                    'forma_pagamento',
+                    e.target.checked ? 'ENTREGA A RECEBER' : '',
+                    { shouldDirty: true },
+                  );
+                }}
+              />
+              <span className="text-muted-foreground">
+                Receber na entrega <span className="text-[11px]">(atalho)</span>
+              </span>
+            </label>
             <div className="grid grid-cols-2 gap-4">
               <Field label="Parcelas">
                 <Input {...register('parcelas')} placeholder="10x" />

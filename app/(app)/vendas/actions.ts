@@ -85,6 +85,7 @@ export async function criarPedidoAction(
       cliente_cep:      d.cliente_cep ?? null,
       cliente_telefone: d.cliente_telefone ?? null,
       cliente_id,
+      cliente_endereco_id: d.cliente_endereco_id ?? null,
       forma_pagamento:  d.forma_pagamento ?? null,
       parcelas:         d.parcelas ?? null,
       valor_total:      d.valor_total,

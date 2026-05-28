@@ -11,6 +11,7 @@ import {
   Printer,
   CheckCircle2,
   PackageCheck,
+  MapPin,
   LayoutDashboard,
   Users,
   History,
@@ -64,6 +65,19 @@ const STEPS_BY_ROLE: Record<UserRole, Step[]> = {
       body:
         'Confira cliente, endereço, bairro, itens e total. Tudo é editável caso o parser não tenha pego algum campo (ex.: PDFs com layout estranho). O bairro fica destacado em laranja porque é a chave da rota da logística.',
       tip: 'Se preferir, salve como "Rascunho" pra finalizar depois — fica visível só pra você até virar Pendente.',
+    },
+    {
+      icon: MapPin,
+      title: 'Endereços do cliente lembrados',
+      body:
+        'Se o cliente tem CNPJ/CPF preenchido e já apareceu em pedidos anteriores, o sistema mostra um seletor "Endereço de entrega" com os endereços cadastrados (Sede, Obra 1, Depósito…). Se o endereço do PDF bate com algum, ele vem pré-selecionado. Senão, fica em "Outro endereço" e você pode clicar em "Salvar como novo endereço deste cliente" pra reusar nos próximos pedidos.',
+      tip: 'Sem CNPJ/CPF o seletor não aparece — preencha o documento pra ativar o histórico de endereços do cliente.',
+    },
+    {
+      icon: CheckCircle2,
+      title: 'Atalho "Receber na entrega"',
+      body:
+        'Na seção Pagamento, marque o checkbox "Receber na entrega" pra preencher automaticamente a forma de pagamento com "ENTREGA A RECEBER" (o padrão da casa). Desmarcar limpa o campo.',
     },
     {
       icon: Send,
@@ -155,9 +169,9 @@ const STEPS_BY_ROLE: Record<UserRole, Step[]> = {
     },
     {
       icon: UsersRound,
-      title: 'Cadastro de clientes',
+      title: 'Cadastro de clientes + endereços',
       body:
-        'Em "Clientes" você vê todos os clientes que apareceram em pedidos — o sistema cria automaticamente no upload do PDF (chave: CNPJ). Edite nomes, mescle duplicados, ou desative os que pararam de comprar.',
+        'Em "Clientes" você vê todos os clientes que apareceram em pedidos — o sistema cria automaticamente no upload do PDF (chave: CNPJ/CPF). Edite nomes, mescle duplicados, ou cadastre múltiplos endereços de entrega (Sede, Obra 1, Depósito…) com um marcado como padrão. Os vendedores enxergam esses endereços ao montar novos pedidos.',
       cta: { label: 'Clientes', href: '/admin/clientes' },
       tip: 'Quando vendedor sobe PDF, o sistema busca por CNPJ. Se existe, reutiliza; se não, cria. Nome do cadastro não é sobrescrito automaticamente — você edita aqui se quiser padronizar.',
     },
@@ -424,6 +438,19 @@ const GLOSSARY: GlossaryEntry[] = [
         A logística ordena os pedidos por bairro pra otimizar deslocamento. Por isso o bairro
         aparece em pill colorida nas listagens e é destacado na revisão — sempre confira esse
         campo antes de enviar.
+      </>
+    ),
+  },
+  {
+    term: 'Endereço cadastrado vs livre',
+    def: (
+      <>
+        Cliente com CNPJ ou CPF pode ter vários <strong>endereços cadastrados</strong>{' '}
+        (Sede, Obra 1, Depósito) gerenciados em /admin/clientes. No formulário do pedido, o
+        vendedor escolhe um do seletor (auto-pré-seleciona se bater com o do PDF) ou usa
+        "Outro endereço" pra digitar livre e opcionalmente salvar como novo. O Mapa
+        impresso sempre mostra o endereço daquele pedido (snapshot), mesmo que o cadastro
+        do cliente mude depois.
       </>
     ),
   },

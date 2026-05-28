@@ -12,8 +12,86 @@ export type Database = {
   __InternalSupabase: {
     PostgrestVersion: "14.5"
   }
+  graphql_public: {
+    Tables: {
+      [_ in never]: never
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      graphql: {
+        Args: {
+          extensions?: Json
+          operationName?: string
+          query?: string
+          variables?: Json
+        }
+        Returns: Json
+      }
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
+    }
+  }
   public: {
     Tables: {
+      cliente_enderecos: {
+        Row: {
+          bairro: string | null
+          cep: string | null
+          cidade: string | null
+          cliente_id: string
+          created_at: string
+          endereco: string | null
+          id: string
+          is_padrao: boolean
+          rotulo: string
+          telefone: string | null
+          uf: string | null
+          updated_at: string
+        }
+        Insert: {
+          bairro?: string | null
+          cep?: string | null
+          cidade?: string | null
+          cliente_id: string
+          created_at?: string
+          endereco?: string | null
+          id?: string
+          is_padrao?: boolean
+          rotulo: string
+          telefone?: string | null
+          uf?: string | null
+          updated_at?: string
+        }
+        Update: {
+          bairro?: string | null
+          cep?: string | null
+          cidade?: string | null
+          cliente_id?: string
+          created_at?: string
+          endereco?: string | null
+          id?: string
+          is_padrao?: boolean
+          rotulo?: string
+          telefone?: string | null
+          uf?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "cliente_enderecos_cliente_id_fkey"
+            columns: ["cliente_id"]
+            isOneToOne: false
+            referencedRelation: "clientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clientes: {
         Row: {
           bairro_padrao: string | null
@@ -323,6 +401,7 @@ export type Database = {
           cliente_cnpj_cpf: string | null
           cliente_codigo: string | null
           cliente_endereco: string | null
+          cliente_endereco_id: string | null
           cliente_id: string | null
           cliente_nome: string
           cliente_telefone: string | null
@@ -349,6 +428,7 @@ export type Database = {
           cliente_cnpj_cpf?: string | null
           cliente_codigo?: string | null
           cliente_endereco?: string | null
+          cliente_endereco_id?: string | null
           cliente_id?: string | null
           cliente_nome?: string
           cliente_telefone?: string | null
@@ -375,6 +455,7 @@ export type Database = {
           cliente_cnpj_cpf?: string | null
           cliente_codigo?: string | null
           cliente_endereco?: string | null
+          cliente_endereco_id?: string | null
           cliente_id?: string | null
           cliente_nome?: string
           cliente_telefone?: string | null
@@ -395,6 +476,13 @@ export type Database = {
           vendedor_id?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "pedidos_cliente_endereco_id_fkey"
+            columns: ["cliente_endereco_id"]
+            isOneToOne: false
+            referencedRelation: "cliente_enderecos"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "pedidos_cliente_id_fkey"
             columns: ["cliente_id"]
@@ -589,6 +677,9 @@ export type CompositeTypes<
     : never
 
 export const Constants = {
+  graphql_public: {
+    Enums: {},
+  },
   public: {
     Enums: {
       pedido_status: [
