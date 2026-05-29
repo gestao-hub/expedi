@@ -49,7 +49,7 @@ export function DatePicker({
           buttonVariants({ variant: 'outline' }),
           'w-full justify-start font-normal h-9 px-3 text-sm',
           !validDate && 'text-muted-foreground',
-          'hover:bg-background hover:border-franzoni-orange/40',
+          'hover:bg-background hover:border-brand/40',
           className,
         )}
       >

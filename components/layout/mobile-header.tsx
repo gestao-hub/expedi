@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { Menu, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { FranzoniLogo } from '@/components/franzoni-logo';
+import { AppLogo } from '@/components/app-logo';
 import { useUser } from '@/components/providers/user-provider';
 import type { UserRole } from '@/lib/types';
 import {
@@ -57,7 +57,7 @@ export function MobileHeader() {
     <>
       <header className="md:hidden sticky top-0 z-30 sidebar-surface text-white px-3 py-2 flex items-center justify-between border-b border-white/8">
         <Link href="/" className="flex items-center">
-          <FranzoniLogo size={36} variant="light" />
+          <AppLogo size={36} variant="light" />
         </Link>
         <Button
           variant="ghost"
@@ -78,7 +78,7 @@ export function MobileHeader() {
           />
           <aside className="relative ml-auto w-72 max-w-[85vw] sidebar-surface text-white flex flex-col">
             <div className="px-4 pt-6 pb-4 flex items-center justify-between border-b border-white/8">
-              <FranzoniLogo size={64} variant="light" />
+              <AppLogo size={64} variant="light" />
               <Button
                 variant="ghost"
                 size="icon"

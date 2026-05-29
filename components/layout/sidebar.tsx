@@ -19,7 +19,7 @@ import { useTheme } from 'next-themes';
 import { cn } from '@/lib/utils';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { FranzoniLogo } from '@/components/franzoni-logo';
+import { AppLogo } from '@/components/app-logo';
 import { useUser } from '@/components/providers/user-provider';
 import type { UserRole } from '@/lib/types';
 import type { EmpresaAtual } from '@/lib/empresa/current';
@@ -148,7 +148,7 @@ export function Sidebar({ empresa }: { empresa?: EmpresaAtual | null }) {
               {empresa.nome}
             </span>
           ) : (
-            <FranzoniLogo size={80} variant="light" />
+            <AppLogo size={80} variant="light" />
           )}
         </Link>
       </div>
@@ -179,8 +179,8 @@ export function Sidebar({ empresa }: { empresa?: EmpresaAtual | null }) {
       {/* Footer: user + theme + logout */}
       <div className="border-t border-white/6 px-3 py-3 space-y-2">
         <div className="flex items-center gap-3 px-1">
-          <Avatar className="h-8 w-8 bg-franzoni-orange/20 ring-1 ring-franzoni-orange/35">
-            <AvatarFallback className="bg-transparent text-xs font-semibold text-franzoni-orange-100">
+          <Avatar className="h-8 w-8 bg-brand/20 ring-1 ring-brand/35">
+            <AvatarFallback className="bg-transparent text-xs font-semibold text-brand-100">
               {initials(profile.full_name || profile.email || '?')}
             </AvatarFallback>
           </Avatar>

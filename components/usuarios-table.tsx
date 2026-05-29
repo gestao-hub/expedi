@@ -73,8 +73,8 @@ export function UsuariosTable({
       <ul className="md:hidden divide-y divide-border/50">
         {sorted.map((p) => (
           <li key={p.id} className="px-4 py-3 flex items-center gap-3">
-            <Avatar className="h-9 w-9 bg-franzoni-orange/15 ring-1 ring-franzoni-orange/25 shrink-0">
-              <AvatarFallback className="bg-transparent text-xs font-semibold text-franzoni-orange-700">
+            <Avatar className="h-9 w-9 bg-brand/15 ring-1 ring-brand/25 shrink-0">
+              <AvatarFallback className="bg-transparent text-xs font-semibold text-brand-700">
                 {initials(p.full_name || p.email)}
               </AvatarFallback>
             </Avatar>
@@ -140,11 +140,11 @@ export function UsuariosTable({
       </TableHeader>
       <TableBody>
         {sorted.map((p) => (
-          <TableRow key={p.id} className="hover:bg-franzoni-orange/5">
+          <TableRow key={p.id} className="hover:bg-brand/5">
             <TableCell className="pl-5 min-w-0">
               <div className="flex items-center gap-3 min-w-0">
-                <Avatar className="h-8 w-8 bg-franzoni-orange/15 ring-1 ring-franzoni-orange/25 shrink-0">
-                  <AvatarFallback className="bg-transparent text-xs font-semibold text-franzoni-orange-700">
+                <Avatar className="h-8 w-8 bg-brand/15 ring-1 ring-brand/25 shrink-0">
+                  <AvatarFallback className="bg-transparent text-xs font-semibold text-brand-700">
                     {initials(p.full_name || p.email)}
                   </AvatarFallback>
                 </Avatar>

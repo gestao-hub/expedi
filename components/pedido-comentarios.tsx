@@ -139,8 +139,8 @@ export function PedidoComentarios({
             const isMine = c.autor_id === currentUserId;
             return (
               <li key={c.id} className="flex gap-3">
-                <Avatar className="h-8 w-8 bg-franzoni-orange/15 ring-1 ring-franzoni-orange/25 shrink-0">
-                  <AvatarFallback className="bg-transparent text-xs font-semibold text-franzoni-orange-700">
+                <Avatar className="h-8 w-8 bg-brand/15 ring-1 ring-brand/25 shrink-0">
+                  <AvatarFallback className="bg-transparent text-xs font-semibold text-brand-700">
                     {initials(name)}
                   </AvatarFallback>
                 </Avatar>
@@ -202,7 +202,7 @@ export function PedidoComentarios({
             size="sm"
             onClick={send}
             disabled={sending || !texto.trim()}
-            className="bg-franzoni-orange hover:bg-franzoni-orange-600"
+            className="bg-brand hover:bg-brand-600"
           >
             {sending ? (
               <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />

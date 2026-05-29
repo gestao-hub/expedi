@@ -8,12 +8,12 @@
  * Identidade Franzoni Casa & Construção
  * ------------------------------------------------------------ */
 @theme {
-  --color-franzoni-orange-50:  #FEF3EC;
-  --color-franzoni-orange-100: #FCE1CC;
-  --color-franzoni-orange-500: #F37021;
-  --color-franzoni-orange-600: #D85A0F;
-  --color-franzoni-orange-700: #B14709;
-  --color-franzoni-orange:     #F37021;
+  --color-brand-50:  #FEF3EC;
+  --color-brand-100: #FCE1CC;
+  --color-brand-500: #F37021;
+  --color-brand-600: #D85A0F;
+  --color-brand-700: #B14709;
+  --color-brand:     #F37021;
 
   --color-franzoni-navy-50:    #E8EAF2;
   --color-franzoni-navy-100:   #C5CADE;

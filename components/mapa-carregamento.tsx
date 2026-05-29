@@ -1,6 +1,6 @@
 import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { FranzoniLogo } from '@/components/franzoni-logo';
+import { AppLogo } from '@/components/app-logo';
 import { StatusBadge } from '@/components/status-badge';
 import type {
   Pedido,
@@ -52,7 +52,7 @@ export function MapaCarregamento({
     >
       {/* Header */}
       <header className="border-b border-black/20 px-6 py-4 flex items-center justify-between gap-6">
-        <FranzoniLogo variant="dark" size={56} />
+        <AppLogo variant="dark" size={56} />
         <div className="text-right">
           <h1 className="text-lg font-bold tracking-tight">Mapa de Carregamento</h1>
           <p className="text-xs text-muted-foreground">
@@ -90,7 +90,7 @@ export function MapaCarregamento({
           <KV
             label="Bairro"
             value={pedido.cliente_bairro}
-            className="col-span-1 [&_.kv-value]:font-semibold [&_.kv-value]:text-franzoni-orange-700"
+            className="col-span-1 [&_.kv-value]:font-semibold [&_.kv-value]:text-brand-700"
           />
           <KV label="Cidade"  value={pedido.cliente_cidade} className="col-span-1" />
           <KV label="UF"      value={pedido.cliente_uf} className="col-span-1" />

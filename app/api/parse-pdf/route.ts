@@ -1,6 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
-import { parseFranzoniErp } from '@/lib/parser/franzoni-erp';
+import { parseHiperErp } from '@/lib/parser/hiper-erp';
 
 export const runtime = 'nodejs'; // unpdf precisa de Node (não Edge)
 export const maxDuration = 30;
@@ -55,7 +55,7 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const pedido = parseFranzoniErp(text);
+  const pedido = parseHiperErp(text);
 
   // 4) Upload pro Storage (path: {user_id}/{timestamp}-{nome})
   const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_');

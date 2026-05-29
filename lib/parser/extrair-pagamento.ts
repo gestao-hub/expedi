@@ -1,4 +1,4 @@
-import { parseFranzoniErp } from './franzoni-erp';
+import { parseHiperErp } from './hiper-erp';
 
 /**
  * Extrai só a forma de pagamento + parcelas do texto do PDF do Hiper.
@@ -9,7 +9,7 @@ export function extrairPagamentoDoPdfText(text: string): {
   forma_pagamento: string | null;
   parcelas: string | null;
 } {
-  const p = parseFranzoniErp(text);
+  const p = parseHiperErp(text);
   return {
     forma_pagamento: p.forma_pagamento ?? null,
     parcelas: p.parcelas ?? null,
