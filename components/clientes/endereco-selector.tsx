@@ -93,7 +93,7 @@ export function EnderecoSelector({
               const ende = enderecos.find((x) => x.id === id);
               if (ende) onPickAction(ende);
             }}
-            className="w-full h-9 px-3 rounded-md border border-input bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-franzoni-orange/40"
+            className="w-full h-9 px-3 rounded-md border border-input bg-transparent text-sm focus:outline-none focus:ring-2 focus:ring-brand/40"
           >
             <option value="">— Outro endereço (digitar abaixo) —</option>
             {enderecos.map((e) => (
@@ -267,7 +267,7 @@ function AddEnderecoDialog({
           <Button
             onClick={save}
             disabled={pending}
-            className="bg-franzoni-orange hover:bg-franzoni-orange-600"
+            className="bg-brand hover:bg-brand-600"
           >
             {pending ? (
               <Loader2 className="h-4 w-4 mr-1 animate-spin" />

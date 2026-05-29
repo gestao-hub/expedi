@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { brDate, brNumber, parseFranzoniErp } from './franzoni-erp';
+import { brDate, brNumber, parseHiperErp } from './hiper-erp';
 
 const fixture = readFileSync(
   resolve(__dirname, '../../tests/fixtures/pedido-L4077.txt'),
@@ -33,8 +33,8 @@ describe('helpers', () => {
   });
 });
 
-describe('parseFranzoniErp — fixture pedido L4077', () => {
-  const r = parseFranzoniErp(fixture);
+describe('parseHiperErp — fixture pedido L4077', () => {
+  const r = parseHiperErp(fixture);
 
   it('documento e datas', () => {
     expect(r.documento_erp).toBe('L4077');
@@ -89,7 +89,7 @@ describe('parseFranzoniErp — fixture pedido L4077', () => {
 
 describe('robustez', () => {
   it('texto vazio → defaults seguros', () => {
-    const r = parseFranzoniErp('');
+    const r = parseHiperErp('');
     expect(r.cliente.nome).toBe('');
     expect(r.pontos_retirada).toHaveLength(1);
     expect(r.pontos_retirada[0].itens).toHaveLength(0);
@@ -98,14 +98,14 @@ describe('robustez', () => {
   });
 
   it('número com milhar BR', () => {
-    const r = parseFranzoniErp(`Total 1.234,56\n`);
+    const r = parseHiperErp(`Total 1.234,56\n`);
     expect(r.valor_total).toBe(1234.56);
   });
 
   it('texto wall-of-text (estilo unpdf) — normaliza quebras', () => {
     // Mesmo conteúdo do fixture mas sem quebras de linha
     const wall = fixture.replace(/\n/g, ' ').replace(/\s+/g, ' ').trim();
-    const r = parseFranzoniErp(wall);
+    const r = parseHiperErp(wall);
     expect(r.documento_erp).toBe('L4077');
     expect(r.cliente.nome).toBe('START SERVICE LTDA');
     expect(r.cliente.bairro).toBe('Forquilhas');
@@ -117,8 +117,8 @@ describe('robustez', () => {
   });
 });
 
-describe('parseFranzoniErp — fixture pedido L4079 (variações do ERP real)', () => {
-  const r = parseFranzoniErp(fixtureL4079);
+describe('parseHiperErp — fixture pedido L4079 (variações do ERP real)', () => {
+  const r = parseHiperErp(fixtureL4079);
 
   it('cliente com CNPJ/CPF vazio "()" — ainda extrai código e nome', () => {
     expect(r.cliente.codigo).toBe('91');

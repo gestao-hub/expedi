@@ -1,4 +1,4 @@
-import type { PedidoParsed } from './franzoni-erp';
+import type { PedidoParsed } from './hiper-erp';
 import type { PedidoFormInput } from '@/lib/validators/pedido';
 
 /** Converte a saída do parser para os defaults do PedidoForm. */

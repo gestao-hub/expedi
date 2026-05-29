@@ -2,11 +2,11 @@ import Image from 'next/image';
 import { cn } from '@/lib/utils';
 
 /**
- * Logo Franzoni Casa & Construção.
+ * Logo Expedi.
  * - variant="light" (default): texto branco — use em fundos escuros (sidebar)
  * - variant="dark": texto navy — use em fundos claros (login, impressão)
  */
-export function FranzoniLogo({
+export function AppLogo({
   className,
   variant = 'light',
   size = 40,
@@ -19,7 +19,7 @@ export function FranzoniLogo({
   return (
     <Image
       src={src}
-      alt="Franzoni Casa & Construção"
+      alt="Expedi"
       width={size}
       height={size}
       priority

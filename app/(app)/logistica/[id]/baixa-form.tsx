@@ -165,7 +165,7 @@ export function BaixaForm({
           <Button
             onClick={save}
             disabled={savePending}
-            className="bg-franzoni-orange hover:bg-franzoni-orange-600"
+            className="bg-brand hover:bg-brand-600"
           >
             {savePending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
             Salvar

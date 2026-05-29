@@ -52,7 +52,7 @@ export default async function HistoricoPage() {
           value={total ?? 0}
         />
         <Kpi
-          icon={<DollarSign className="h-4 w-4 text-franzoni-orange" />}
+          icon={<DollarSign className="h-4 w-4 text-brand" />}
           label="Valor faturado"
           value={valorTotal.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
         />
@@ -80,7 +80,7 @@ function Kpi({
   return (
     <ContentCard className="p-3!">
       <div className="flex items-center gap-2.5">
-        <div className="h-8 w-8 rounded-md bg-franzoni-orange/10 flex items-center justify-center shrink-0">
+        <div className="h-8 w-8 rounded-md bg-brand/10 flex items-center justify-center shrink-0">
           {icon}
         </div>
         <div className="min-w-0">

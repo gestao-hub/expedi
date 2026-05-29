@@ -198,7 +198,7 @@ export function PedidoForm({
           </Field>
           <Field
             label="Bairro"
-            className="md:col-span-1 [&_input]:bg-franzoni-orange-50/40 [&_input]:border-franzoni-orange/30"
+            className="md:col-span-1 [&_input]:bg-brand-50/40 [&_input]:border-brand/30"
           >
             <Input {...register('cliente_bairro')} placeholder="Destacado para logística" />
           </Field>
@@ -301,7 +301,7 @@ export function PedidoForm({
             <label className="flex items-center gap-2 -mt-1.5 text-sm cursor-pointer select-none">
               <input
                 type="checkbox"
-                className="h-4 w-4 rounded accent-franzoni-orange cursor-pointer"
+                className="h-4 w-4 rounded accent-brand cursor-pointer"
                 checked={(watch('forma_pagamento') ?? '') === 'ENTREGA A RECEBER'}
                 onChange={(e) => {
                   setValue(
@@ -360,7 +360,7 @@ export function PedidoForm({
           type="button"
           onClick={() => submit('pendente')}
           disabled={pending}
-          className="bg-franzoni-orange hover:bg-franzoni-orange-600"
+          className="bg-brand hover:bg-brand-600"
         >
           {pending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
           Enviar para Logística

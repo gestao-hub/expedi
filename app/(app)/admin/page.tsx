@@ -142,11 +142,11 @@ export default async function AdminDashboard() {
   ];
 
   const shortcuts = [
-    { label: 'Ver Pedidos',    href: '/vendas',         icon: Package,    color: 'text-franzoni-orange' },
+    { label: 'Ver Pedidos',    href: '/vendas',         icon: Package,    color: 'text-brand' },
     { label: 'Fila Logística', href: '/logistica',      icon: TruckIcon,  color: 'text-franzoni-navy' },
     { label: 'Histórico',      href: '/historico',      icon: History,    color: 'text-status-finalizado' },
-    { label: 'Clientes',       href: '/admin/clientes', icon: UsersRound, color: 'text-franzoni-orange' },
-    { label: 'Usuários',       href: '/admin/usuarios', icon: Users,      color: 'text-franzoni-orange' },
+    { label: 'Clientes',       href: '/admin/clientes', icon: UsersRound, color: 'text-brand' },
+    { label: 'Usuários',       href: '/admin/usuarios', icon: Users,      color: 'text-brand' },
   ];
 
   return (
@@ -191,8 +191,8 @@ export default async function AdminDashboard() {
         </ContentCard>
         <ContentCard className="p-5!">
           <div className="flex items-start gap-3">
-            <div className="h-9 w-9 rounded-lg bg-franzoni-orange/10 flex items-center justify-center shrink-0">
-              <UsersRound className="h-4 w-4 text-franzoni-orange" />
+            <div className="h-9 w-9 rounded-lg bg-brand/10 flex items-center justify-center shrink-0">
+              <UsersRound className="h-4 w-4 text-brand" />
             </div>
             <div>
               <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">
@@ -206,8 +206,8 @@ export default async function AdminDashboard() {
         </ContentCard>
         <ContentCard className="p-5!">
           <div className="flex items-start gap-3">
-            <div className="h-9 w-9 rounded-lg bg-franzoni-orange/10 flex items-center justify-center shrink-0">
-              <Users className="h-4 w-4 text-franzoni-orange" />
+            <div className="h-9 w-9 rounded-lg bg-brand/10 flex items-center justify-center shrink-0">
+              <Users className="h-4 w-4 text-brand" />
             </div>
             <div>
               <p className="text-[11px] uppercase tracking-wider text-muted-foreground font-medium">

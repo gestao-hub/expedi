@@ -83,7 +83,7 @@ export function LoginForm() {
         <Button
           type="submit"
           disabled={isPending}
-          className="w-full bg-franzoni-orange hover:bg-franzoni-orange-600 text-white"
+          className="w-full bg-brand hover:bg-brand-600 text-white"
         >
           {isPending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
           Entrar

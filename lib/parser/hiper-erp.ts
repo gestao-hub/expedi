@@ -1,5 +1,5 @@
 /**
- * Parser do PDF do ERP da Franzoni.
+ * Parser do PDF do ERP Hiper.
  *
  * Recebe o texto cru extraído do PDF (via pdf-parse) e devolve um objeto
  * estruturado. Os campos que o ERP não fornece (motorista, veículo, pesos)
@@ -262,7 +262,7 @@ function normalizeBreaks(text: string): string {
   return out;
 }
 
-export function parseFranzoniErp(text: string): PedidoParsed {
+export function parseHiperErp(text: string): PedidoParsed {
   const normalized = normalizeBreaks(text.replace(/ /g, ' '));
 
   // empresa emissora: primeira linha não-vazia, cortando ao chegar em

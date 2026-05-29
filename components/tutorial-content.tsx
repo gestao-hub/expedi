@@ -496,8 +496,8 @@ export function TutorialContent({ role }: { role: UserRole }) {
       {/* Hero */}
       <ContentCard className="p-6!">
         <div className="flex items-start gap-4">
-          <div className="h-12 w-12 rounded-xl bg-franzoni-orange/15 flex items-center justify-center shrink-0">
-            <Lightbulb className="h-6 w-6 text-franzoni-orange" />
+          <div className="h-12 w-12 rounded-xl bg-brand/15 flex items-center justify-center shrink-0">
+            <Lightbulb className="h-6 w-6 text-brand" />
           </div>
           <div>
             <h2 className="font-heading text-xl font-bold text-franzoni-navy dark:text-white">
@@ -529,7 +529,7 @@ export function TutorialContent({ role }: { role: UserRole }) {
       {/* FAQ */}
       <ContentCard className="p-5!">
         <div className="flex items-center gap-2 mb-3">
-          <AlertTriangle className="h-4 w-4 text-franzoni-orange" />
+          <AlertTriangle className="h-4 w-4 text-brand" />
           <h3 className="font-heading font-semibold text-base">Dúvidas frequentes</h3>
         </div>
         <dl className="divide-y divide-border/40">
@@ -545,7 +545,7 @@ export function TutorialContent({ role }: { role: UserRole }) {
       {/* Glossário */}
       <ContentCard className="p-5!">
         <div className="flex items-center gap-2 mb-3">
-          <HelpCircle className="h-4 w-4 text-franzoni-orange" />
+          <HelpCircle className="h-4 w-4 text-brand" />
           <h3 className="font-heading font-semibold text-base">Glossário</h3>
         </div>
         <dl className="space-y-3 text-sm">
@@ -600,7 +600,7 @@ function StepList({ steps, numbered = true }: { steps: Step[]; numbered?: boolea
               <div className="flex gap-4">
                 <div className="flex flex-col items-center shrink-0">
                   {numbered ? (
-                    <div className="h-9 w-9 rounded-full bg-franzoni-orange text-white flex items-center justify-center font-heading font-bold text-sm shadow-sm shadow-franzoni-orange/40">
+                    <div className="h-9 w-9 rounded-full bg-brand text-white flex items-center justify-center font-heading font-bold text-sm shadow-sm shadow-brand/40">
                       {i + 1}
                     </div>
                   ) : (

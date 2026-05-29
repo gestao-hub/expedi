@@ -97,7 +97,7 @@ export function RegistrarEntregaDialog({
       <DialogContent className="max-w-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
-            <PackageCheck className="h-5 w-5 text-franzoni-orange" />
+            <PackageCheck className="h-5 w-5 text-brand" />
             Registrar Entrega
           </DialogTitle>
           <DialogDescription>
@@ -168,7 +168,7 @@ export function RegistrarEntregaDialog({
           <Button
             onClick={salvar}
             disabled={pending || itensPendentes.length === 0}
-            className="bg-franzoni-orange hover:bg-franzoni-orange-600"
+            className="bg-brand hover:bg-brand-600"
           >
             {pending ? (
               <Loader2 className="h-4 w-4 mr-2 animate-spin" />

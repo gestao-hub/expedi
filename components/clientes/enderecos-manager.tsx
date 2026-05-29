@@ -155,7 +155,7 @@ export function EnderecosManager({
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="font-medium text-sm">{e.rotulo}</span>
                       {e.is_padrao && (
-                        <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-franzoni-orange/20 text-franzoni-orange-700">
+                        <span className="text-[10px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-brand/20 text-brand-700">
                           Padrão
                         </span>
                       )}
@@ -255,7 +255,7 @@ function EnderecoForm({
   }
 
   return (
-    <div className="p-3 rounded-md border border-franzoni-orange/30 bg-franzoni-orange/5 space-y-2">
+    <div className="p-3 rounded-md border border-brand/30 bg-brand/5 space-y-2">
       <div className="grid grid-cols-1 md:grid-cols-6 gap-2">
         <Field label="Rótulo *" cls="md:col-span-2">
           <Input
@@ -311,7 +311,7 @@ function EnderecoForm({
           size="sm"
           onClick={submit}
           disabled={pending}
-          className="bg-franzoni-orange hover:bg-franzoni-orange-600"
+          className="bg-brand hover:bg-brand-600"
         >
           {pending ? (
             <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" />

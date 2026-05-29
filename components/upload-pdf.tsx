@@ -15,7 +15,7 @@ import {
 import { toast } from 'sonner';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import type { PedidoParsed } from '@/lib/parser/franzoni-erp';
+import type { PedidoParsed } from '@/lib/parser/hiper-erp';
 
 type ParseResponse = {
   pedido: PedidoParsed;
@@ -124,8 +124,8 @@ export function UploadPdf({
         className={cn(
           'border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors',
           isDragActive
-            ? 'border-franzoni-orange bg-franzoni-orange-50/50'
-            : 'border-muted-foreground/25 hover:border-franzoni-orange/50 hover:bg-muted/30',
+            ? 'border-brand bg-brand-50/50'
+            : 'border-muted-foreground/25 hover:border-brand/50 hover:bg-muted/30',
           loading && 'opacity-50 cursor-not-allowed',
         )}
       >
@@ -158,7 +158,7 @@ export function UploadPdf({
               key={`${f.name}-${i}`}
               className="flex items-center gap-3 px-3 py-2 rounded-md bg-muted/40 border border-border/60"
             >
-              <FileText className="h-4 w-4 text-franzoni-orange shrink-0" />
+              <FileText className="h-4 w-4 text-brand shrink-0" />
               <span className="flex-1 text-sm truncate">{f.name}</span>
               <span className="text-xs text-muted-foreground tabular-nums">
                 {(f.size / 1024).toFixed(0)} KB
@@ -183,7 +183,7 @@ export function UploadPdf({
         type="button"
         onClick={onProcess}
         disabled={files.length === 0 || loading}
-        className="w-full bg-franzoni-orange hover:bg-franzoni-orange-600"
+        className="w-full bg-brand hover:bg-brand-600"
       >
         {loading && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
         {files.length > 1 ? `Processar ${files.length} PDFs em lote` : 'Processar PDF'}

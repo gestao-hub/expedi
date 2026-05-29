@@ -98,7 +98,7 @@ export default async function PedidoDetailPage({
                 href={`/vendas/${id}/revisar`}
                 className={cn(
                   buttonVariants({ variant: 'default' }),
-                  'bg-franzoni-orange hover:bg-franzoni-orange-600',
+                  'bg-brand hover:bg-brand-600',
                 )}
               >
                 Revisar e enviar
@@ -143,7 +143,7 @@ export default async function PedidoDetailPage({
               const usuario = ev.usuario as { full_name?: string | null } | null;
               return (
                 <li key={ev.id} className="flex gap-3 text-sm">
-                  <div className="w-2 h-2 rounded-full bg-franzoni-orange mt-1.5 shrink-0 ring-4 ring-franzoni-orange/15" />
+                  <div className="w-2 h-2 rounded-full bg-brand mt-1.5 shrink-0 ring-4 ring-brand/15" />
                   <div className="flex-1">
                     <p>{ev.descricao || ev.tipo}</p>
                     <p className="text-xs text-muted-foreground">

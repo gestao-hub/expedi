@@ -102,7 +102,7 @@ export default function NovoPedidoPage() {
                 </Button>
                 <Link
                   href="/vendas"
-                  className="inline-flex items-center justify-center rounded-md text-sm font-medium px-4 h-9 bg-franzoni-orange hover:bg-franzoni-orange-600 text-white"
+                  className="inline-flex items-center justify-center rounded-md text-sm font-medium px-4 h-9 bg-brand hover:bg-brand-600 text-white"
                 >
                   Ver pedidos
                 </Link>
@@ -186,7 +186,7 @@ async function processOne(
     fd.append('file', item.file);
     const res = await fetch('/api/parse-pdf', { method: 'POST', body: fd });
     const parsed = (await res.json().catch(() => ({}))) as
-      | { pedido: import('@/lib/parser/franzoni-erp').PedidoParsed; storage_path: string | null }
+      | { pedido: import('@/lib/parser/hiper-erp').PedidoParsed; storage_path: string | null }
       | { error: string; detail?: string };
 
     if (!res.ok || 'error' in parsed) {

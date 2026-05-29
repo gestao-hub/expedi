@@ -156,7 +156,7 @@ export function ClientesTable({ clientes }: { clientes: Cliente[] }) {
             </TableRow>
           ) : (
             filtered.map((c) => (
-              <TableRow key={c.id} className="hover:bg-franzoni-orange/5">
+              <TableRow key={c.id} className="hover:bg-brand/5">
                 <TableCell className="pl-5 min-w-0 font-medium truncate" title={c.nome}>
                   {c.nome}
                 </TableCell>
@@ -366,7 +366,7 @@ function EditDialog({
               });
             }}
             disabled={pending}
-            className="bg-franzoni-orange hover:bg-franzoni-orange-600"
+            className="bg-brand hover:bg-brand-600"
           >
             {pending && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
             Salvar
