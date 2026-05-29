@@ -7,19 +7,24 @@ public sealed class HiperRepository(string connectionString)
 {
     private readonly string _cs = connectionString;
 
-    public async Task<List<PedidoHeader>> NovosPedidosAsync(int hwm, short situacao, CancellationToken ct)
+    public async Task<List<PedidoHeader>> NovosPedidosAsync(int hwm, short[] situacoes, CancellationToken ct)
     {
-        const string sql = @"
+        if (situacoes is null || situacoes.Length == 0) return new();
+        // placeholders dinâmicos @s0,@s1,... — só NOMES de parâmetro entram na string;
+        // os VALORES vão por SqlParameter (sem interpolar dados → sem risco de injeção).
+        var nomes = situacoes.Select((_, i) => "@s" + i).ToArray();
+        string sql = $@"
 SELECT pv.id_pedido_venda, pv.codigo, pv.data_hora_geracao, pv.id_entidade_cliente,
        pv.id_usuario_vendedor, pv.data_previsao_entrega_final, pv.data_previsao_entrega_inicial, pv.observacao
 FROM pedido_venda pv WITH (NOLOCK)
-WHERE pv.excluido = 0 AND pv.situacao = @sit AND pv.id_pedido_venda > @hwm
+WHERE pv.excluido = 0 AND pv.situacao IN ({string.Join(",", nomes)}) AND pv.id_pedido_venda > @hwm
 ORDER BY pv.id_pedido_venda;";
         var list = new List<PedidoHeader>();
         await using var cn = new SqlConnection(_cs);
         await cn.OpenAsync(ct);
         await using var cmd = new SqlCommand(sql, cn);
-        cmd.Parameters.AddWithValue("@sit", situacao);
+        for (int i = 0; i < situacoes.Length; i++)
+            cmd.Parameters.AddWithValue(nomes[i], situacoes[i]);
         cmd.Parameters.AddWithValue("@hwm", hwm);
         await using var r = await cmd.ExecuteReaderAsync(ct);
         while (await r.ReadAsync(ct))
