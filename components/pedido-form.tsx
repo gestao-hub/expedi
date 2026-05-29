@@ -14,7 +14,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Separator } from '@/components/ui/separator';
-import { criarPedidoAction } from '@/app/(app)/vendas/actions';
+import { criarPedidoAction, atualizarPedidoAction } from '@/app/(app)/vendas/actions';
 import { pedidoFormSchema, type PedidoFormInput } from '@/lib/validators/pedido';
 import { DatePicker } from '@/components/ui/date-picker';
 import { EnderecoSelector } from '@/components/clientes/endereco-selector';
@@ -41,7 +41,15 @@ function collectErrorLeaves(node: unknown, prefix = ''): ErrorLeaf[] {
   return out;
 }
 
-export function PedidoForm({ defaultValues }: { defaultValues: PedidoFormInput }) {
+export function PedidoForm({
+  defaultValues,
+  mode = 'create',
+  pedidoId,
+}: {
+  defaultValues: PedidoFormInput;
+  mode?: 'create' | 'edit';
+  pedidoId?: string;
+}) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
 
@@ -69,7 +77,10 @@ export function PedidoForm({ defaultValues }: { defaultValues: PedidoFormInput }
     handleSubmit(
       (values) => {
         startTransition(async () => {
-          const r = await criarPedidoAction(values, status);
+          const r =
+            mode === 'edit' && pedidoId
+              ? await atualizarPedidoAction(pedidoId, values, status)
+              : await criarPedidoAction(values, status);
           if ('error' in r) {
             toast.error(r.error);
             return;

@@ -26,31 +26,36 @@ type ClienteUpsertInput = {
 export async function upsertCliente(
   supabase: SupabaseClient<Database>,
   input: ClienteUpsertInput,
+  empresaId?: string,
 ): Promise<{ id: string; criou: boolean }> {
   const cnpj = input.cnpj_cpf?.trim() || null;
 
   if (cnpj) {
-    const { data: existente } = await supabase
-      .from('clientes')
-      .select('id')
-      .eq('cnpj_cpf', cnpj)
-      .maybeSingle();
+    // Em sessão de usuário a RLS já escopa por empresa; no ingest (service_role,
+    // sem RLS) precisamos escopar manualmente pra não casar cliente de outra empresa.
+    let q = supabase.from('clientes').select('id').eq('cnpj_cpf', cnpj);
+    if (empresaId) q = q.eq('empresa_id', empresaId);
+    const { data: existente } = await q.maybeSingle();
     if (existente) return { id: existente.id as string, criou: false };
   }
 
+  const insertRow: Database['public']['Tables']['clientes']['Insert'] = {
+    cnpj_cpf:        cnpj,
+    codigo_erp:      input.codigo_erp ?? null,
+    nome:            input.nome,
+    endereco_padrao: input.endereco ?? null,
+    bairro_padrao:   input.bairro ?? null,
+    cidade_padrao:   input.cidade ?? null,
+    uf_padrao:       input.uf ?? null,
+    cep_padrao:      input.cep ?? null,
+    telefone_padrao: input.telefone ?? null,
+  };
+  // Sessão: omitir → DEFAULT current_empresa_id() preenche. Ingest: explícito.
+  if (empresaId) insertRow.empresa_id = empresaId;
+
   const { data: novo, error } = await supabase
     .from('clientes')
-    .insert({
-      cnpj_cpf:        cnpj,
-      codigo_erp:      input.codigo_erp ?? null,
-      nome:            input.nome,
-      endereco_padrao: input.endereco ?? null,
-      bairro_padrao:   input.bairro ?? null,
-      cidade_padrao:   input.cidade ?? null,
-      uf_padrao:       input.uf ?? null,
-      cep_padrao:      input.cep ?? null,
-      telefone_padrao: input.telefone ?? null,
-    })
+    .insert(insertRow)
     .select('id')
     .single();
 

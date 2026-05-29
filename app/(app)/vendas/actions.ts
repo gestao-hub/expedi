@@ -4,7 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { pedidoFormSchema, type PedidoFormInput } from '@/lib/validators/pedido';
-import { upsertCliente } from '@/lib/clientes/upsert';
+import { inserirPedido } from '@/lib/pedidos/inserir';
 
 export type SavePedidoResult =
   | { error: string }
@@ -32,122 +32,119 @@ export async function criarPedidoAction(
   }
   const d = parsed.data;
 
-  // Dedup explícito (UX > confiar só no unique index) — só quando o ERP forneceu doc.
-  if (d.documento_erp) {
-    const { data: existing } = await supabase
-      .from('pedidos')
-      .select('id, numero_mapa')
-      .eq('documento_erp', d.documento_erp)
-      .neq('status', 'cancelado')
-      .maybeSingle();
-    if (existing) {
-      return {
-        duplicate: true,
-        existing_id: existing.id as string,
-        existing_numero: existing.numero_mapa as number,
-      };
-    }
+  // Sessão de usuário: vendedor = auth.uid(); empresa_id é preenchido pelo
+  // DEFAULT current_empresa_id() no banco (não buscamos a empresa aqui).
+  const r = await inserirPedido(supabase, d, { vendedorId: user.id, status });
+  if (!('error' in r)) {
+    revalidatePath('/vendas');
+    revalidatePath('/logistica');
   }
+  return r;
+}
 
-  // Upsert do cliente (cadastro central) — opcional, tolera falha
-  let cliente_id: string | null = null;
-  try {
-    const { id } = await upsertCliente(supabase, {
-      cnpj_cpf:   d.cliente_cnpj_cpf,
-      codigo_erp: d.cliente_codigo,
-      nome:       d.cliente_nome,
-      endereco:   d.cliente_endereco,
-      bairro:     d.cliente_bairro,
-      cidade:     d.cliente_cidade,
-      uf:         d.cliente_uf,
-      cep:        d.cliente_cep,
-      telefone:   d.cliente_telefone,
-    });
-    cliente_id = id;
-  } catch {
-    // não-bloqueante: pedido salva com cliente_id=null se upsert falhar
-    cliente_id = null;
+/**
+ * Atualiza um pedido existente (cabeçalho + substitui pontos/itens) e define o
+ * status. Usado na tela de revisão do rascunho sincronizado do Hiper: o vendedor
+ * completa observação + endereço de entrega e envia pra logística.
+ */
+export async function atualizarPedidoAction(
+  id: string,
+  raw: PedidoFormInput,
+  status: 'rascunho' | 'pendente',
+): Promise<SavePedidoResult> {
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { error: 'Não autenticado' };
+
+  const parsed = pedidoFormSchema.safeParse(raw);
+  if (!parsed.success) {
+    return { error: parsed.error.issues[0]?.message ?? 'Dados inválidos' };
   }
+  const d = parsed.data;
 
-  const { data: pedido, error: insErr } = await supabase
+  // Precondição: só rascunho pode ser editado aqui (RLS já escopa dono/empresa).
+  // Evita que esta ação apague/recrie pontos/itens de um pedido já enviado.
+  const { data: atual } = await supabase
     .from('pedidos')
-    .insert({
-      documento_erp:    d.documento_erp ?? null,
-      data_emissao:     d.data_emissao ?? null,
-      data_entrega:     d.data_entrega ?? null,
-      cliente_codigo:   d.cliente_codigo ?? null,
-      cliente_nome:     d.cliente_nome,
+    .select('status')
+    .eq('id', id)
+    .single();
+  if (!atual) return { error: 'Pedido não encontrado' };
+  if (atual.status !== 'rascunho') return { error: 'Apenas rascunhos podem ser editados' };
+
+  const { data: pedido, error: upErr } = await supabase
+    .from('pedidos')
+    .update({
+      data_emissao: d.data_emissao ?? null,
+      data_entrega: d.data_entrega ?? null,
+      cliente_codigo: d.cliente_codigo ?? null,
+      cliente_nome: d.cliente_nome,
       cliente_cnpj_cpf: d.cliente_cnpj_cpf ?? null,
       cliente_endereco: d.cliente_endereco ?? null,
-      cliente_bairro:   d.cliente_bairro ?? null,
-      cliente_cidade:   d.cliente_cidade ?? null,
-      cliente_uf:       d.cliente_uf ?? null,
-      cliente_cep:      d.cliente_cep ?? null,
+      cliente_bairro: d.cliente_bairro ?? null,
+      cliente_cidade: d.cliente_cidade ?? null,
+      cliente_uf: d.cliente_uf ?? null,
+      cliente_cep: d.cliente_cep ?? null,
       cliente_telefone: d.cliente_telefone ?? null,
-      cliente_id,
       cliente_endereco_id: d.cliente_endereco_id ?? null,
-      forma_pagamento:  d.forma_pagamento ?? null,
-      parcelas:         d.parcelas ?? null,
-      valor_total:      d.valor_total,
-      observacoes:      d.observacoes ?? null,
+      forma_pagamento: d.forma_pagamento ?? null,
+      parcelas: d.parcelas ?? null,
+      valor_total: d.valor_total,
+      observacoes: d.observacoes ?? null,
       status,
-      storage_pdf_path: d.storage_pdf_path ?? null,
-      vendedor_id:      user.id,
     })
+    .eq('id', id)
+    .eq('status', 'rascunho') // transição atômica: não corre com mudança de status
     .select('id, numero_mapa')
     .single();
+  if (upErr || !pedido) return { error: upErr?.message ?? 'Pedido não encontrado ou não é mais rascunho' };
 
-  if (insErr || !pedido) {
-    // Colisão no índice único global de documento_erp. O dedup acima roda sob
-    // RLS e só enxerga os pedidos do próprio vendedor; quando o documento já
-    // existe num pedido ATIVO de OUTRO usuário, o dedup não vê e a inserção
-    // bate aqui. Traduz o erro cru do Postgres numa mensagem amigável.
-    if (insErr?.code === '23505' && insErr.message.includes('pedidos_documento_erp_uniq')) {
-      return {
-        error: `Já existe um pedido ativo com o documento ${d.documento_erp}. Ele pode ter sido criado por outro vendedor — fale com um admin se precisar reaproveitar este documento.`,
-      };
-    }
-    return { error: insErr?.message ?? 'Falha ao criar pedido' };
+  // Substitui pontos/itens (rascunho ainda não tem entrega registrada).
+  const { data: pontosAntigos } = await supabase
+    .from('pedido_pontos_retirada')
+    .select('id')
+    .eq('pedido_id', id);
+  const idsAntigos = (pontosAntigos ?? []).map((p) => p.id);
+  if (idsAntigos.length) {
+    await supabase.from('pedido_itens').delete().in('ponto_retirada_id', idsAntigos);
+    await supabase.from('pedido_pontos_retirada').delete().eq('pedido_id', id);
   }
-
-  // Insere pontos e itens (sequencial pra preservar ordem)
   for (let i = 0; i < d.pontos_retirada.length; i++) {
     const ponto = d.pontos_retirada[i];
-    const { data: pontoRow, error: pontoErr } = await supabase
+    const { data: pontoRow, error: pErr } = await supabase
       .from('pedido_pontos_retirada')
       .insert({
-        pedido_id:    pedido.id,
-        tipo:         ponto.tipo,
+        pedido_id: id,
+        tipo: ponto.tipo,
         empresa_nome: ponto.empresa_nome,
-        endereco:     ponto.endereco ?? null,
-        ordem:        i,
+        endereco: ponto.endereco ?? null,
+        ordem: i,
       })
       .select('id')
       .single();
-
-    if (pontoErr || !pontoRow) {
-      return { error: `Falha no ponto ${i + 1}: ${pontoErr?.message}` };
-    }
-
-    if (ponto.itens.length > 0) {
-      const itensPayload = ponto.itens.map((it, idx) => ({
+    if (pErr || !pontoRow) return { error: `Falha no ponto ${i + 1}: ${pErr?.message}` };
+    if (ponto.itens.length) {
+      const itens = ponto.itens.map((it, idx) => ({
         ponto_retirada_id: pontoRow.id,
-        codigo:            it.codigo,
-        descricao:         it.descricao,
-        quantidade:        it.quantidade,
-        unidade:           it.unidade,
-        preco_unitario:    it.preco_unitario,
-        desconto:          it.desconto,
-        total:             it.total,
-        referencia:        it.referencia ?? null,
-        ordem:             idx,
+        codigo: it.codigo,
+        descricao: it.descricao,
+        quantidade: it.quantidade,
+        unidade: it.unidade,
+        preco_unitario: it.preco_unitario,
+        desconto: it.desconto,
+        total: it.total,
+        referencia: it.referencia ?? null,
+        ordem: idx,
       }));
-      const { error: itErr } = await supabase.from('pedido_itens').insert(itensPayload);
-      if (itErr) return { error: `Falha nos itens do ponto ${i + 1}: ${itErr.message}` };
+      const { error: iErr } = await supabase.from('pedido_itens').insert(itens);
+      if (iErr) return { error: `Falha nos itens do ponto ${i + 1}: ${iErr.message}` };
     }
   }
 
   revalidatePath('/vendas');
+  revalidatePath(`/vendas/${id}`);
   revalidatePath('/logistica');
   return { id: pedido.id as string, numero: pedido.numero_mapa as number };
 }
