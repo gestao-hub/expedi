@@ -93,6 +93,17 @@ export default async function PedidoDetailPage({
             >
               <Printer className="h-4 w-4 mr-1" /> Imprimir
             </Link>
+            {pedido.status === 'rascunho' && (
+              <Link
+                href={`/vendas/${id}/revisar`}
+                className={cn(
+                  buttonVariants({ variant: 'default' }),
+                  'bg-franzoni-orange hover:bg-franzoni-orange-600',
+                )}
+              >
+                Revisar e enviar
+              </Link>
+            )}
             {podeCancelar && <CancelarPedidoButton id={id} />}
           </>
         }
