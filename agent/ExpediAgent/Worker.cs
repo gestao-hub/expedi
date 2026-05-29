@@ -6,7 +6,7 @@ public sealed class Worker(AgentConfig cfg, HiperRepository repo, IngestClient c
 {
     protected override async Task ExecuteAsync(CancellationToken ct)
     {
-        log.LogInformation("ExpediAgent iniciado. Poll a cada {S}s, situação-gatilho {Sit}.", cfg.PollIntervalSeconds, cfg.SituacaoGatilho);
+        log.LogInformation("ExpediAgent iniciado. Poll a cada {S}s, situações-gatilho {Sit}.", cfg.PollIntervalSeconds, cfg.SituacoesGatilho);
         while (!ct.IsCancellationRequested)
         {
             try { await TickAsync(ct); }
@@ -19,7 +19,7 @@ public sealed class Worker(AgentConfig cfg, HiperRepository repo, IngestClient c
     private async Task TickAsync(CancellationToken ct)
     {
         int hwm = state.GetHwm();
-        var novos = await repo.NovosPedidosAsync(hwm, cfg.SituacaoGatilho, ct);
+        var novos = await repo.NovosPedidosAsync(hwm, cfg.SituacoesArray, ct);
         if (novos.Count == 0) return;
 
         int maxOk = hwm;

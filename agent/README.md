@@ -13,7 +13,7 @@ Edite `ExpediAgent/appsettings.json`:
 - `ApiBaseUrl`: URL da plataforma (ex.: `https://franzoni.vercel.app`).
 - `DeviceToken`: token do dispositivo (provisionado na nuvem).
 - `SqlConnectionString`: conexão com o Hiper (default já aponta `.\HIPER`).
-- `SituacaoGatilho`: valor de `pedido_venda.situacao` que dispara o sync (default 5 = aberto — **confirmar** na instalação).
+- `SituacoesGatilho`: lista CSV de `pedido_venda.situacao` que disparam o sync (default `2,5,7` = faturado/aberto/finalizado; **NÃO** inclui `6`=cancelado). Confirmar os valores na instalação.
 - `PollIntervalSeconds` (30), `PdfGraceMinutes` (3), `TempDir` (vazio = `%TEMP%`).
 
 ## Rodar em console (teste)
