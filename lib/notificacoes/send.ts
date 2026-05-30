@@ -47,12 +47,13 @@ export async function enviarEmail(
 ): Promise<EnvioResult> {
   const key = process.env.RESEND_API_KEY;
   if (!key) return { ok: false, error: 'RESEND_API_KEY ausente' };
-  if (!remetente) return { ok: false, error: 'email_remetente não configurado' };
+  const from = remetente || process.env.EMAIL_REMETENTE_PADRAO || null;
+  if (!from) return { ok: false, error: 'email_remetente não configurado' };
   try {
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
-      body: JSON.stringify({ from: remetente, to: destino, subject: assunto, text: texto }),
+      body: JSON.stringify({ from, to: destino, subject: assunto, text: texto }),
     });
     if (!res.ok) return { ok: false, error: `resend ${res.status}: ${(await res.text()).slice(0, 200)}` };
     return { ok: true };
