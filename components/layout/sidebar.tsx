@@ -14,6 +14,7 @@ import {
   Moon,
   Sun,
   Lightbulb,
+  Building2,
 } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { cn } from '@/lib/utils';
@@ -174,6 +175,19 @@ export function Sidebar({ empresa }: { empresa?: EmpresaAtual | null }) {
             </ul>
           </div>
         ))}
+        {profile.is_platform_admin && (
+          <div className="px-2 mt-1">
+            <p className="nav-section-label">Operador</p>
+            <ul className="space-y-1">
+              <li>
+                <Link href="/plataforma" className="nav-card-glass" data-active={pathname.startsWith('/plataforma')}>
+                  <Building2 className="h-4 w-4 shrink-0" />
+                  <span className="truncate">Plataforma</span>
+                </Link>
+              </li>
+            </ul>
+          </div>
+        )}
       </nav>
 
       {/* Footer: user + theme + logout */}
