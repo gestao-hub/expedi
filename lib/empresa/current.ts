@@ -7,6 +7,7 @@ export type EmpresaAtual = {
   slug: string;
   logo_url: string | null;
   cor_primaria: string | null;
+  usa_os: boolean;
 };
 
 /**
@@ -30,7 +31,7 @@ export async function getEmpresaAtual(
 
   const { data: emp } = await supabase
     .from('empresas')
-    .select('id, nome, slug, logo_url, cor_primaria')
+    .select('id, nome, slug, logo_url, cor_primaria, usa_os')
     .eq('id', prof.empresa_id)
     .single();
 
