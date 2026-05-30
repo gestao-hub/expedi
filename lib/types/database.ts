@@ -718,6 +718,7 @@ export type Database = {
           created_at: string
           data_emissao: string | null
           data_entrega: string | null
+          data_entrega_inicio: string | null
           documento_erp: string | null
           empresa_id: string
           forma_pagamento: string | null
@@ -728,6 +729,7 @@ export type Database = {
           status: Database["public"]["Enums"]["pedido_status"]
           storage_pdf_path: string | null
           updated_at: string
+          valor_frete: number
           valor_total: number
           vendedor_id: string | null
         }
@@ -746,6 +748,7 @@ export type Database = {
           created_at?: string
           data_emissao?: string | null
           data_entrega?: string | null
+          data_entrega_inicio?: string | null
           documento_erp?: string | null
           empresa_id?: string
           forma_pagamento?: string | null
@@ -756,6 +759,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["pedido_status"]
           storage_pdf_path?: string | null
           updated_at?: string
+          valor_frete?: number
           valor_total?: number
           vendedor_id?: string | null
         }
@@ -774,6 +778,7 @@ export type Database = {
           created_at?: string
           data_emissao?: string | null
           data_entrega?: string | null
+          data_entrega_inicio?: string | null
           documento_erp?: string | null
           empresa_id?: string
           forma_pagamento?: string | null
@@ -784,6 +789,7 @@ export type Database = {
           status?: Database["public"]["Enums"]["pedido_status"]
           storage_pdf_path?: string | null
           updated_at?: string
+          valor_frete?: number
           valor_total?: number
           vendedor_id?: string | null
         }
