@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { Plus, Copy, Power, PowerOff, Building2, Cpu, Users } from 'lucide-react';
+import { Plus, Copy, Power, PowerOff, Building2, Cpu, Users, Bell } from 'lucide-react';
 import { PageHeader } from '@/components/layout/page-header';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,11 +12,16 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter,
 } from '@/components/ui/dialog';
-import { criarEmpresaComAdminAction } from '@/lib/empresa/actions';
+import { criarEmpresaComAdminAction, salvarNotifConfigAction, type NotifConfigInput } from '@/lib/empresa/actions';
 import { criarDispositivoAction, setDispositivoAtivoAction } from '@/lib/empresa/devices-actions';
 import { salvarVendedorMapAction } from '@/lib/empresa/vendedor-map-actions';
 
-type Empresa = { id: string; nome: string; slug: string; ativo: boolean };
+type Empresa = {
+  id: string; nome: string; slug: string; ativo: boolean; usa_os: boolean;
+  notif_whatsapp_ativo: boolean; uazapi_url: string | null; uazapi_token: string | null;
+  uazapi_instancia: string | null; notif_email_ativo: boolean; email_remetente: string | null;
+  manutencao_lembrete_dias: number; os_situacao_autorizacao: number | null; os_situacao_pronto: number | null;
+};
 type Dispositivo = { id: string; empresa_id: string; nome: string; ativo: boolean; last_seen_at: string | null; created_at: string };
 type Mapeamento = { empresa_id: string; hiper_usuario_id: number; hiper_usuario_nome: string | null; vendedor_id: string };
 type Profile = { id: string; full_name: string | null; email: string | null; role: string; empresa_id: string | null };
@@ -140,8 +145,94 @@ function EmpresaCard({
       <CardContent className="space-y-6">
         <DispositivosSection empresaId={empresa.id} dispositivos={dispositivos} onTokenGerado={onTokenGerado} />
         <VendedoresSection empresaId={empresa.id} mapeamentos={mapeamentos} vendedores={vendedores} />
+        {empresa.usa_os && <NotificacoesSection empresa={empresa} />}
       </CardContent>
     </Card>
+  );
+}
+
+function NotificacoesSection({ empresa }: { empresa: Empresa }) {
+  const router = useRouter();
+  const [pending, start] = useTransition();
+  const [f, setF] = useState<NotifConfigInput>({
+    notif_whatsapp_ativo: empresa.notif_whatsapp_ativo,
+    uazapi_url: empresa.uazapi_url,
+    uazapi_token: empresa.uazapi_token,
+    uazapi_instancia: empresa.uazapi_instancia,
+    notif_email_ativo: empresa.notif_email_ativo,
+    email_remetente: empresa.email_remetente,
+    manutencao_lembrete_dias: empresa.manutencao_lembrete_dias ?? 7,
+    os_situacao_autorizacao: empresa.os_situacao_autorizacao,
+    os_situacao_pronto: empresa.os_situacao_pronto,
+  });
+  const set = <K extends keyof NotifConfigInput>(k: K, v: NotifConfigInput[K]) =>
+    setF((p) => ({ ...p, [k]: v }));
+  const numOrNull = (s: string) => (s.trim() === '' ? null : Number(s));
+
+  function salvar() {
+    start(async () => {
+      const r = await salvarNotifConfigAction(empresa.id, f);
+      if ('error' in r) toast.error(r.error);
+      else { toast.success('Notificações salvas.'); router.refresh(); }
+    });
+  }
+
+  return (
+    <section>
+      <h3 className="text-sm font-semibold flex items-center gap-2 mb-3">
+        <Bell className="h-4 w-4" /> Notificações (OS)
+      </h3>
+      <div className="space-y-4">
+        {/* WhatsApp */}
+        <div className="rounded-md border p-3 space-y-2">
+          <label className="flex items-center gap-2 text-sm font-medium">
+            <input type="checkbox" checked={f.notif_whatsapp_ativo}
+              onChange={(e) => set('notif_whatsapp_ativo', e.target.checked)} />
+            WhatsApp (uazapi)
+          </label>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+            <Input placeholder="URL da instância (uazapi_url)" value={f.uazapi_url ?? ''}
+              onChange={(e) => set('uazapi_url', e.target.value)} />
+            <Input placeholder="Token" value={f.uazapi_token ?? ''}
+              onChange={(e) => set('uazapi_token', e.target.value)} />
+            <Input placeholder="Instância (opcional)" value={f.uazapi_instancia ?? ''}
+              onChange={(e) => set('uazapi_instancia', e.target.value)} />
+          </div>
+        </div>
+        {/* E-mail */}
+        <div className="rounded-md border p-3 space-y-2">
+          <label className="flex items-center gap-2 text-sm font-medium">
+            <input type="checkbox" checked={f.notif_email_ativo}
+              onChange={(e) => set('notif_email_ativo', e.target.checked)} />
+            E-mail (Resend)
+          </label>
+          <Input placeholder='Remetente — ex: "Oficina X <oi@oficina.com>"' value={f.email_remetente ?? ''}
+            onChange={(e) => set('email_remetente', e.target.value)} />
+        </div>
+        {/* Gatilhos + lembrete */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+          <div>
+            <Label className="text-[11px]">Situação = Autorização</Label>
+            <Input type="number" placeholder="ex.: 3" value={f.os_situacao_autorizacao ?? ''}
+              onChange={(e) => set('os_situacao_autorizacao', numOrNull(e.target.value))} />
+          </div>
+          <div>
+            <Label className="text-[11px]">Situação = Pronto</Label>
+            <Input type="number" placeholder="ex.: 5" value={f.os_situacao_pronto ?? ''}
+              onChange={(e) => set('os_situacao_pronto', numOrNull(e.target.value))} />
+          </div>
+          <div>
+            <Label className="text-[11px]">Lembrete: dias antes</Label>
+            <Input type="number" value={f.manutencao_lembrete_dias}
+              onChange={(e) => set('manutencao_lembrete_dias', Number(e.target.value))} />
+          </div>
+        </div>
+        <Button size="sm" onClick={salvar} disabled={pending}>Salvar notificações</Button>
+        <p className="text-[11px] text-muted-foreground">
+          Sem credencial, a notificação é enfileirada mas não enviada. As situações vêm do Hiper do cliente (deixe em branco para não disparar automático).
+        </p>
+      </div>
+    </section>
   );
 }
 

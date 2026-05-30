@@ -9,16 +9,66 @@ const BRL = (n: number) => n.toLocaleString('pt-BR', { style: 'currency', curren
 
 export default async function OsListPage() {
   const supabase = await createClient();
-  const { data: ordens } = await supabase
-    .from('ordens_servico')
-    .select('id, documento_erp, cliente_nome, objeto, status, tecnico_nome, data_previsao, valor_total')
-    .order('created_at', { ascending: false })
-    .limit(200);
+  const [{ data: ordens }, { data: manut }] = await Promise.all([
+    supabase
+      .from('ordens_servico')
+      .select('id, documento_erp, cliente_nome, objeto, status, tecnico_nome, data_previsao, valor_total')
+      .order('created_at', { ascending: false })
+      .limit(200),
+    supabase
+      .from('ordens_servico')
+      .select('id, documento_erp, cliente_nome, objeto, data_proxima_manutencao, proxima_manutencao_obs')
+      .not('data_proxima_manutencao', 'is', null)
+      .order('data_proxima_manutencao', { ascending: true })
+      .limit(50),
+  ]);
   const lista = ordens ?? [];
+  const manutencoes = manut ?? [];
+  const hojeISO = new Date().toISOString().slice(0, 10);
 
   return (
     <>
       <PageHeader title="Ordens de Serviço" description="OS sincronizadas do Hiper." />
+
+      {manutencoes.length > 0 && (
+        <ContentCard header={<ContentCardTitle>Próximas manutenções ({manutencoes.length})</ContentCardTitle>}>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-muted/50 text-xs uppercase tracking-wide text-muted-foreground">
+                <tr>
+                  <th className="text-left px-3 py-2">Data</th>
+                  <th className="text-left px-3 py-2">Cliente</th>
+                  <th className="text-left px-3 py-2">Objeto</th>
+                  <th className="text-left px-3 py-2">Serviço</th>
+                  <th className="text-left px-3 py-2">OS</th>
+                </tr>
+              </thead>
+              <tbody>
+                {manutencoes.map((m) => {
+                  const venc = (m.data_proxima_manutencao ?? '') <= hojeISO;
+                  return (
+                    <tr key={m.id} className="border-t hover:bg-muted/30">
+                      <td className={`px-3 py-2 font-mono ${venc ? 'font-bold text-amber-700' : ''}`}>
+                        {m.data_proxima_manutencao
+                          ? format(new Date(`${m.data_proxima_manutencao}T12:00:00`), 'dd/MM/yyyy', { locale: ptBR })
+                          : '—'}
+                      </td>
+                      <td className="px-3 py-2">{m.cliente_nome}</td>
+                      <td className="px-3 py-2">{m.objeto ?? '—'}</td>
+                      <td className="px-3 py-2">{m.proxima_manutencao_obs ?? 'Manutenção'}</td>
+                      <td className="px-3 py-2">
+                        <Link href={`/os/${m.id}`} className="text-brand hover:underline">
+                          {m.documento_erp ?? 'abrir'}
+                        </Link>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </ContentCard>
+      )}
       <ContentCard header={<ContentCardTitle>Ordens ({lista.length})</ContentCardTitle>}>
         {lista.length === 0 ? (
           <p className="text-sm text-muted-foreground italic py-8 text-center">
