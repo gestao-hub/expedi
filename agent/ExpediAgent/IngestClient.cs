@@ -64,5 +64,29 @@ public sealed class IngestClient(HttpClient http, AgentConfig cfg, ILogger<Inges
         catch { return null; }
     }
 
+    /// <summary>Envia uma Ordem de Serviço pro endpoint /api/ingest/os.</summary>
+    public async Task<IngestResult> EnviarOsAsync(IngestOsPayload payload, CancellationToken ct)
+    {
+        var json = JsonSerializer.Serialize(payload);
+        using var form = new MultipartFormDataContent();
+        form.Add(new StringContent(json), "dados");
+        using var req = new HttpRequestMessage(HttpMethod.Post, $"{cfg.ApiBaseUrl}/api/ingest/os") { Content = form };
+        req.Headers.Authorization = new AuthenticationHeaderValue("Bearer", cfg.DeviceToken);
+        try
+        {
+            using var res = await http.SendAsync(req, ct);
+            var body = await res.Content.ReadAsStringAsync(ct);
+            return res.StatusCode switch
+            {
+                HttpStatusCode.Created => IngestResult.Created,
+                HttpStatusCode.OK => IngestResult.Duplicate,
+                HttpStatusCode.Unauthorized => Log(IngestResult.Unauthorized, $"401 OS: {body}"),
+                HttpStatusCode.UnprocessableEntity => Log(IngestResult.Invalid, $"422 OS: {body}"),
+                _ => Log(IngestResult.Error, $"OS {(int)res.StatusCode}: {body}"),
+            };
+        }
+        catch (Exception ex) { return Log(IngestResult.Error, ex.Message); }
+    }
+
     private IngestResult Log(IngestResult r, string msg) { log.LogWarning("Ingest {Result}: {Msg}", r, msg); return r; }
 }

@@ -13,6 +13,15 @@ public sealed class AgentConfig
             .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .Select(short.Parse)
             .ToArray();
+    // Ordem de Serviço (opcional — liga só pra cliente que usa OS no Hiper)
+    public bool SyncOs { get; set; } = false;
+    public string SituacoesOsGatilho { get; set; } = ""; // vazio = sem filtro de situação
+    public short[] SituacoesOsArray =>
+        (SituacoesOsGatilho ?? "")
+            .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+            .Select(short.Parse)
+            .ToArray();
+
     public int PdfGraceMinutes { get; set; } = 3;
     public string TempDir { get; set; } = "";
     public string ResolvedTempDir => string.IsNullOrWhiteSpace(TempDir) ? Path.GetTempPath() : TempDir;

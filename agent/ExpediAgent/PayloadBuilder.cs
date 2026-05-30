@@ -41,4 +41,35 @@ public static class PayloadBuilder
             },
         };
     }
+
+    public static IngestOsPayload BuildOs(OsHeader h, ClienteRow? c, List<IngestItem> itens, List<OsServicoRow> servicos)
+    {
+        var fone = string.Join("", new[] { c?.FoneDdd, c?.FoneNumero }.Where(s => !string.IsNullOrWhiteSpace(s)));
+        return new IngestOsPayload
+        {
+            DocumentoErp = h.IdOrdemServico.ToString(),
+            OsErpId = h.IdOrdemServico,
+            HiperUsuarioId = h.IdUsuarioResponsavel,
+            ClienteNome = string.IsNullOrWhiteSpace(c?.Nome) ? "Cliente" : c!.Nome,
+            ClienteCnpjCpf = string.IsNullOrWhiteSpace(c?.CpfCnpj) ? null : c!.CpfCnpj,
+            ClienteTelefone = string.IsNullOrWhiteSpace(fone) ? null : fone,
+            Categoria = h.Categoria,
+            SituacaoErp = h.Situacao,
+            Prioridade = h.Prioridade,
+            DataAbertura = h.DataAbertura?.ToString("yyyy-MM-dd"),
+            DataPrevisao = h.DataPrevisao?.ToString("yyyy-MM-dd"),
+            DataConclusao = h.DataConclusao?.ToString("yyyy-MM-dd"),
+            DefeitoRelatado = h.DefeitoRelatado,
+            Diagnostico = h.Diagnostico,
+            GarantiaInicio = h.GarantiaInicio?.ToString("yyyy-MM-dd"),
+            GarantiaFim = h.GarantiaFim?.ToString("yyyy-MM-dd"),
+            Observacao = h.Observacao,
+            Itens = itens,
+            Servicos = servicos.Select(s => new IngestOsServico
+            {
+                Descricao = s.Descricao, Quantidade = s.Quantidade,
+                ValorUnitario = s.ValorUnitario, Total = s.ValorTotal, TecnicoNome = s.TecnicoNome,
+            }).ToList(),
+        };
+    }
 }

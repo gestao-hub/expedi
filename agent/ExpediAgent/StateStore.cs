@@ -10,12 +10,18 @@ public sealed class StateStore
         Directory.CreateDirectory(dir);
         _path = Path.Combine(dir, "state.json");
     }
-    private sealed class State { public int Hwm { get; set; } }
+    private sealed class State { public int Hwm { get; set; } public int OsHwm { get; set; } }
 
-    public int GetHwm()
+    private State Load()
     {
-        try { return File.Exists(_path) ? (JsonSerializer.Deserialize<State>(File.ReadAllText(_path))?.Hwm ?? 0) : 0; }
-        catch { return 0; }
+        try { return File.Exists(_path) ? (JsonSerializer.Deserialize<State>(File.ReadAllText(_path)) ?? new State()) : new State(); }
+        catch { return new State(); }
     }
-    public void SetHwm(int hwm) => File.WriteAllText(_path, JsonSerializer.Serialize(new State { Hwm = hwm }));
+    private void Save(State s) => File.WriteAllText(_path, JsonSerializer.Serialize(s));
+
+    public int GetHwm() => Load().Hwm;
+    public void SetHwm(int hwm) { var s = Load(); s.Hwm = hwm; Save(s); }
+
+    public int GetOsHwm() => Load().OsHwm;
+    public void SetOsHwm(int hwm) { var s = Load(); s.OsHwm = hwm; Save(s); }
 }

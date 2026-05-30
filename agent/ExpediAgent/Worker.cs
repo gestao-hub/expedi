@@ -13,6 +13,11 @@ public sealed class Worker(AgentConfig cfg, HiperRepository repo, IngestClient c
         {
             try { await TickAsync(ct); }
             catch (Exception ex) { log.LogError(ex, "Erro no ciclo de sync"); }
+            if (cfg.SyncOs)
+            {
+                try { await TickOsAsync(ct); }
+                catch (Exception ex) { log.LogError(ex, "Erro no ciclo de OS"); }
+            }
             await client.HeartbeatAsync(ct);
             if (tick % 120 == 0) await ChecarVersaoAsync(ct); // ~1x/h (120 ticks de 30s)
             tick++;
@@ -39,6 +44,33 @@ public sealed class Worker(AgentConfig cfg, HiperRepository repo, IngestClient c
                 log.LogWarning("Schema do Hiper DIVERGENTE — colunas não encontradas: {Cols}. Ajuste as queries em HiperRepository.cs para esta versão do Hiper.", string.Join(", ", faltando));
         }
         catch (Exception ex) { log.LogWarning("Não consegui verificar o schema do Hiper: {Msg}", ex.Message); }
+    }
+
+    private async Task TickOsAsync(CancellationToken ct)
+    {
+        int hwm = state.GetOsHwm();
+        var novas = await repo.NovasOrdensServicoAsync(hwm, cfg.SituacoesOsArray, ct);
+        if (novas.Count == 0) return;
+        int maxOk = hwm;
+        foreach (var h in novas)
+        {
+            var cli = await repo.ClienteAsync(h.IdEntidadeCliente, ct);
+            var itens = await repo.ItensOsAsync(h.IdOrdemServico, ct);
+            var servicos = await repo.ServicosOsAsync(h.IdOrdemServico, ct);
+            var payload = PayloadBuilder.BuildOs(h, cli, itens, servicos);
+            var r = await client.EnviarOsAsync(payload, ct);
+            if (r is IngestResult.Created or IngestResult.Duplicate)
+            {
+                log.LogInformation("OS {Id} sincronizada ({R}).", h.IdOrdemServico, r);
+                maxOk = h.IdOrdemServico;
+            }
+            else
+            {
+                log.LogWarning("OS {Id} falhou ({R}); parando o lote.", h.IdOrdemServico, r);
+                break;
+            }
+        }
+        if (maxOk > hwm) state.SetOsHwm(maxOk);
     }
 
     private async Task TickAsync(CancellationToken ct)
