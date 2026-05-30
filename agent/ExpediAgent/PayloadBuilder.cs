@@ -13,6 +13,7 @@ public static class PayloadBuilder
             PrecoUnitario = it.ValorUnitario,
             Desconto = Math.Max(0m, (it.ValorUnitario - it.ValorUnitarioComDesconto) * it.Quantidade),
             Total = it.Quantidade * it.ValorUnitarioComDesconto,
+            SaldoEstoque = it.SaldoEstoque,
         }).ToList();
 
         var endereco = string.Join(" ", new[] { c?.Logradouro, c?.Numero, c?.Complemento }
@@ -24,6 +25,12 @@ public static class PayloadBuilder
             DocumentoErp = h.Codigo,
             DataEmissao = h.DataHoraGeracao.ToString("yyyy-MM-dd"),
             DataEntrega = h.DataEntrega?.ToString("yyyy-MM-dd"),
+            DataEntregaInicio = h.DataEntregaInicio?.ToString("yyyy-MM-dd"),
+            ValorFrete = h.ValorFrete,
+            NfNumero = h.NfNumero,
+            NfChave = h.NfChave,
+            NfEmitidaEm = h.NfEmitidaEm?.ToString("yyyy-MM-dd HH:mm:ss"),
+            NfValor = h.NfValor,
             HiperUsuarioId = h.IdUsuarioVendedor,
             ClienteNome = string.IsNullOrWhiteSpace(c?.Nome) ? "Cliente" : c!.Nome,
             ClienteCnpjCpf = string.IsNullOrWhiteSpace(c?.CpfCnpj) ? null : c!.CpfCnpj,

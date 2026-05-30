@@ -101,6 +101,27 @@ public sealed class Worker(AgentConfig cfg, HiperRepository repo, IngestClient c
                 maxOk = h.IdPedidoVenda; continue;
             }
 
+            // #3 NF-e (best-effort): não pode quebrar o sync do pedido.
+            try
+            {
+                var nf = await repo.NfDoPedidoAsync(h.IdPedidoVenda, ct);
+                if (nf is { } n)
+                {
+                    h.NfNumero = n.Numero; h.NfChave = n.Chave;
+                    h.NfEmitidaEm = n.Emitida; h.NfValor = n.Valor;
+                }
+            }
+            catch (Exception ex) { log.LogWarning("NF do pedido {Cod} indisponível: {Msg}", h.Codigo, ex.Message); }
+
+            // #5 estoque (best-effort): saldo snapshot por item.
+            try
+            {
+                var saldos = await repo.SaldosAsync(itens.Select(i => i.IdProduto).ToArray(), ct);
+                foreach (var it in itens)
+                    if (saldos.TryGetValue(it.IdProduto, out var s)) it.SaldoEstoque = s;
+            }
+            catch (Exception ex) { log.LogWarning("Saldos do pedido {Cod} indisponíveis: {Msg}", h.Codigo, ex.Message); }
+
             var payload = PayloadBuilder.Build(h, cli, itens);
             var r = await client.EnviarAsync(payload, pdfExiste ? pdf : null, ct);
 

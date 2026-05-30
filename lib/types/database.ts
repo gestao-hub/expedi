@@ -550,6 +550,7 @@ export type Database = {
           quantidade: number
           quantidade_entregue: number
           referencia: string | null
+          saldo_estoque: number | null
           total: number
           unidade: string
         }
@@ -569,6 +570,7 @@ export type Database = {
           quantidade?: number
           quantidade_entregue?: number
           referencia?: string | null
+          saldo_estoque?: number | null
           total?: number
           unidade?: string
         }
@@ -588,6 +590,7 @@ export type Database = {
           quantidade?: number
           quantidade_entregue?: number
           referencia?: string | null
+          saldo_estoque?: number | null
           total?: number
           unidade?: string
         }
@@ -718,16 +721,22 @@ export type Database = {
           created_at: string
           data_emissao: string | null
           data_entrega: string | null
+          data_entrega_inicio: string | null
           documento_erp: string | null
           empresa_id: string
           forma_pagamento: string | null
           id: string
+          nf_chave: string | null
+          nf_emitida_em: string | null
+          nf_numero: string | null
+          nf_valor: number | null
           numero_mapa: number
           observacoes: string | null
           parcelas: string | null
           status: Database["public"]["Enums"]["pedido_status"]
           storage_pdf_path: string | null
           updated_at: string
+          valor_frete: number
           valor_total: number
           vendedor_id: string | null
         }
@@ -746,16 +755,22 @@ export type Database = {
           created_at?: string
           data_emissao?: string | null
           data_entrega?: string | null
+          data_entrega_inicio?: string | null
           documento_erp?: string | null
           empresa_id?: string
           forma_pagamento?: string | null
           id?: string
+          nf_chave?: string | null
+          nf_emitida_em?: string | null
+          nf_numero?: string | null
+          nf_valor?: number | null
           numero_mapa?: number
           observacoes?: string | null
           parcelas?: string | null
           status?: Database["public"]["Enums"]["pedido_status"]
           storage_pdf_path?: string | null
           updated_at?: string
+          valor_frete?: number
           valor_total?: number
           vendedor_id?: string | null
         }
@@ -774,16 +789,22 @@ export type Database = {
           created_at?: string
           data_emissao?: string | null
           data_entrega?: string | null
+          data_entrega_inicio?: string | null
           documento_erp?: string | null
           empresa_id?: string
           forma_pagamento?: string | null
           id?: string
+          nf_chave?: string | null
+          nf_emitida_em?: string | null
+          nf_numero?: string | null
+          nf_valor?: number | null
           numero_mapa?: number
           observacoes?: string | null
           parcelas?: string | null
           status?: Database["public"]["Enums"]["pedido_status"]
           storage_pdf_path?: string | null
           updated_at?: string
+          valor_frete?: number
           valor_total?: number
           vendedor_id?: string | null
         }

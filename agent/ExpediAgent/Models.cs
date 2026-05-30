@@ -8,8 +8,15 @@ public sealed class PedidoHeader
     public DateTime DataHoraGeracao { get; set; }
     public int IdEntidadeCliente { get; set; }
     public int IdUsuarioVendedor { get; set; }
-    public DateTime? DataEntrega { get; set; }
+    public DateTime? DataEntrega { get; set; }        // fim da janela (data_previsao_entrega_final)
+    public DateTime? DataEntregaInicio { get; set; }  // início da janela (data_previsao_entrega_inicial)
+    public decimal ValorFrete { get; set; }
     public string? Observacao { get; set; }
+    // NF-e (preenchida quando o pedido já foi faturado no Hiper)
+    public string? NfNumero { get; set; }
+    public string? NfChave { get; set; }
+    public DateTime? NfEmitidaEm { get; set; }
+    public decimal? NfValor { get; set; }
 }
 
 public sealed class ClienteRow
@@ -29,11 +36,13 @@ public sealed class ClienteRow
 
 public sealed class ItemRow
 {
+    public int IdProduto { get; set; }
     public string Codigo { get; set; } = "";
     public string Descricao { get; set; } = "";
     public decimal Quantidade { get; set; }
     public decimal ValorUnitario { get; set; }
     public decimal ValorUnitarioComDesconto { get; set; }
+    public decimal? SaldoEstoque { get; set; }
 }
 
 // ---- payload pro endpoint (snake_case, igual ingestPedidoSchema) ----
@@ -47,6 +56,7 @@ public sealed class IngestItem
     [JsonPropertyName("desconto")] public decimal Desconto { get; set; }
     [JsonPropertyName("total")] public decimal Total { get; set; }
     [JsonPropertyName("referencia")] public string? Referencia { get; set; }
+    [JsonPropertyName("saldo_estoque")] public decimal? SaldoEstoque { get; set; }
 }
 public sealed class IngestPonto
 {
@@ -119,6 +129,12 @@ public sealed class IngestPayload
     [JsonPropertyName("documento_erp")] public string? DocumentoErp { get; set; }
     [JsonPropertyName("data_emissao")] public string? DataEmissao { get; set; }
     [JsonPropertyName("data_entrega")] public string? DataEntrega { get; set; }
+    [JsonPropertyName("data_entrega_inicio")] public string? DataEntregaInicio { get; set; }
+    [JsonPropertyName("valor_frete")] public decimal ValorFrete { get; set; }
+    [JsonPropertyName("nf_numero")] public string? NfNumero { get; set; }
+    [JsonPropertyName("nf_chave")] public string? NfChave { get; set; }
+    [JsonPropertyName("nf_emitida_em")] public string? NfEmitidaEm { get; set; }
+    [JsonPropertyName("nf_valor")] public decimal? NfValor { get; set; }
     [JsonPropertyName("hiper_usuario_id")] public int HiperUsuarioId { get; set; }
     [JsonPropertyName("cliente_codigo")] public string? ClienteCodigo { get; set; }
     [JsonPropertyName("cliente_nome")] public string ClienteNome { get; set; } = "";

@@ -15,6 +15,13 @@ export const ingestPedidoSchema = z.object({
     .optional(),
   data_emissao: z.string().max(80).nullable().optional(),
   data_entrega: z.string().max(80).nullable().optional(),
+  data_entrega_inicio: z.string().max(80).nullable().optional(),
+  valor_frete: z.number().nonnegative().default(0),
+  // NF-e (preenchida quando o pedido já foi faturado no Hiper)
+  nf_numero: z.string().max(80).nullable().optional(),
+  nf_chave: z.string().max(80).nullable().optional(),
+  nf_emitida_em: z.string().max(80).nullable().optional(),
+  nf_valor: z.number().nonnegative().nullable().optional(),
   hiper_usuario_id: z.number().int(),
   hiper_usuario_nome: z.string().max(250).nullable().optional(),
   cliente_codigo: z.string().max(80).nullable().optional(),

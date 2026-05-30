@@ -15,7 +15,8 @@ public sealed class HiperRepository(string connectionString)
         var nomes = situacoes.Select((_, i) => "@s" + i).ToArray();
         string sql = $@"
 SELECT pv.id_pedido_venda, pv.codigo, pv.data_hora_geracao, pv.id_entidade_cliente,
-       pv.id_usuario_vendedor, pv.data_previsao_entrega_final, pv.data_previsao_entrega_inicial, pv.observacao
+       pv.id_usuario_vendedor, pv.data_previsao_entrega_final, pv.data_previsao_entrega_inicial,
+       pv.observacao, pv.valor_frete
 FROM pedido_venda pv WITH (NOLOCK)
 WHERE pv.excluido = 0 AND pv.situacao IN ({string.Join(",", nomes)}) AND pv.id_pedido_venda > @hwm
 ORDER BY pv.id_pedido_venda;";
@@ -37,7 +38,9 @@ ORDER BY pv.id_pedido_venda;";
                 IdEntidadeCliente = r.GetInt32(3),
                 IdUsuarioVendedor = r.IsDBNull(4) ? 0 : Convert.ToInt32(r.GetValue(4)), // id_usuario_vendedor é smallint no Hiper
                 DataEntrega = !r.IsDBNull(5) ? r.GetDateTime(5) : (r.IsDBNull(6) ? null : r.GetDateTime(6)),
+                DataEntregaInicio = r.IsDBNull(6) ? null : r.GetDateTime(6),
                 Observacao = r.IsDBNull(7) ? null : r.GetString(7),
+                ValorFrete = r.IsDBNull(8) ? 0m : Convert.ToDecimal(r.GetValue(8)),
             });
         }
         return list;
@@ -73,7 +76,7 @@ WHERE e.id_entidade = @id;";
     public async Task<List<ItemRow>> ItensAsync(int idPedido, CancellationToken ct)
     {
         const string sql = @"
-SELECT p.codigo, p.nome, g.quantidade, ipv.valor_unitario, ipv.valor_unitario_com_desconto
+SELECT p.codigo, p.nome, g.quantidade, ipv.valor_unitario, ipv.valor_unitario_com_desconto, ipv.id_produto
 FROM item_pedido_venda ipv WITH (NOLOCK)
 JOIN grade_pedido_venda g WITH (NOLOCK)
   ON g.id_pedido_venda = ipv.id_pedido_venda AND g.sequencia_item = ipv.sequencia_item
@@ -95,9 +98,65 @@ ORDER BY ipv.sequencia_item;";
                 Quantidade = r.GetDecimal(2),
                 ValorUnitario = r.GetDecimal(3),
                 ValorUnitarioComDesconto = r.GetDecimal(4),
+                IdProduto = r.IsDBNull(5) ? 0 : Convert.ToInt32(r.GetValue(5)),
             });
         }
         return list;
+    }
+
+    /// <summary>
+    /// #5 ESTOQUE (best-effort): saldo por id_produto. Chamado em try/catch no Worker —
+    /// se o schema de saldo_estoque divergir, loga e segue SEM quebrar o fluxo de pedidos.
+    /// Colunas confirmadas no raio-x: saldo_estoque(id_produto, quantidade, excluido).
+    /// </summary>
+    public async Task<Dictionary<int, decimal>> SaldosAsync(int[] idProdutos, CancellationToken ct)
+    {
+        var saldos = new Dictionary<int, decimal>();
+        var ids = idProdutos.Where(i => i > 0).Distinct().ToArray();
+        if (ids.Length == 0) return saldos;
+        var nomes = ids.Select((_, i) => "@p" + i).ToArray();
+        var sql = $@"
+SELECT se.id_produto, SUM(se.quantidade) AS saldo
+FROM saldo_estoque se WITH (NOLOCK)
+WHERE se.excluido = 0 AND se.id_produto IN ({string.Join(",", nomes)})
+GROUP BY se.id_produto;";
+        await using var cn = new SqlConnection(_cs);
+        await cn.OpenAsync(ct);
+        await using var cmd = new SqlCommand(sql, cn);
+        for (int i = 0; i < ids.Length; i++) cmd.Parameters.AddWithValue(nomes[i], ids[i]);
+        await using var r = await cmd.ExecuteReaderAsync(ct);
+        while (await r.ReadAsync(ct))
+            saldos[Convert.ToInt32(r.GetValue(0))] = r.IsDBNull(1) ? 0m : Convert.ToDecimal(r.GetValue(1));
+        return saldos;
+    }
+
+    /// <summary>
+    /// #3 NF-e (best-effort): última NF ligada ao pedido. Chamado em try/catch no Worker.
+    /// Cadeia confirmada no raio-x: pedido_venda → pedido_venda_operacao_pdv → operacao_pdv.id_nota_fiscal → nota_fiscal.
+    /// As CHAVES de junção (id_operacao_pdv, id_nota_fiscal) são inferidas — se divergirem, o catch no Worker
+    /// só deixa a NF em branco; o pedido sincroniza normalmente.
+    /// </summary>
+    public async Task<(string? Numero, string? Chave, DateTime? Emitida, decimal? Valor)?> NfDoPedidoAsync(int idPedido, CancellationToken ct)
+    {
+        const string sql = @"
+SELECT TOP 1 nf.numero_documento_fiscal, nf.chave_documento_fiscal, nf.data_hora_emissao, nf.valor_total
+FROM pedido_venda_operacao_pdv pvo WITH (NOLOCK)
+JOIN operacao_pdv op WITH (NOLOCK) ON op.id_operacao_pdv = pvo.id_operacao_pdv
+JOIN nota_fiscal nf WITH (NOLOCK) ON nf.id_nota_fiscal = op.id_nota_fiscal
+WHERE pvo.id_pedido_venda = @id
+ORDER BY nf.data_hora_emissao DESC;";
+        await using var cn = new SqlConnection(_cs);
+        await cn.OpenAsync(ct);
+        await using var cmd = new SqlCommand(sql, cn);
+        cmd.Parameters.AddWithValue("@id", idPedido);
+        await using var r = await cmd.ExecuteReaderAsync(ct);
+        if (!await r.ReadAsync(ct)) return null;
+        return (
+            r.IsDBNull(0) ? null : Convert.ToString(r.GetValue(0)),
+            r.IsDBNull(1) ? null : Convert.ToString(r.GetValue(1)),
+            r.IsDBNull(2) ? null : r.GetDateTime(2),
+            r.IsDBNull(3) ? null : Convert.ToDecimal(r.GetValue(3))
+        );
     }
 
     /// <summary>
@@ -112,7 +171,8 @@ ORDER BY ipv.sequencia_item;";
             ("pedido_venda","id_pedido_venda"), ("pedido_venda","codigo"), ("pedido_venda","situacao"),
             ("pedido_venda","data_hora_geracao"), ("pedido_venda","id_entidade_cliente"),
             ("pedido_venda","id_usuario_vendedor"), ("pedido_venda","data_previsao_entrega_final"),
-            ("pedido_venda","data_previsao_entrega_inicial"), ("pedido_venda","observacao"), ("pedido_venda","excluido"),
+            ("pedido_venda","data_previsao_entrega_inicial"), ("pedido_venda","observacao"),
+            ("pedido_venda","valor_frete"), ("pedido_venda","excluido"),
             ("entidade","nome"), ("entidade","logradouro"), ("entidade","numero_endereco"), ("entidade","complemento"),
             ("entidade","bairro"), ("entidade","cep"), ("entidade","fone_primario_ddd"),
             ("entidade","fone_primario_numero"), ("entidade","id_cidade"),

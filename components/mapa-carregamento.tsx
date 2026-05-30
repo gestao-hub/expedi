@@ -74,7 +74,14 @@ export function MapaCarregamento({
           <KV label="Nome"         value={pedido.cliente_nome} className="col-span-2 font-semibold" />
           <KV label="CNPJ/CPF"     value={pedido.cliente_cnpj_cpf} />
           <KV label="Emissão"      value={fmtDate(pedido.data_emissao)} />
-          <KV label="Entrega"      value={fmtDate(pedido.data_entrega)} />
+          <KV
+            label="Entrega"
+            value={
+              pedido.data_entrega_inicio && pedido.data_entrega_inicio !== pedido.data_entrega
+                ? `${fmtDate(pedido.data_entrega_inicio)} – ${fmtDate(pedido.data_entrega)}`
+                : fmtDate(pedido.data_entrega)
+            }
+          />
           <KV
             label="Vendedor"
             value={vendedor?.full_name || vendedor?.email || '—'}
@@ -151,7 +158,21 @@ export function MapaCarregamento({
                   return (
                   <tr key={it.id} className="even:bg-muted/10 align-top">
                     <td className="px-2 py-1 border font-mono truncate" title={it.codigo}>{it.codigo}</td>
-                    <td className="px-2 py-1 border wrap-break-word">{it.descricao}</td>
+                    <td className="px-2 py-1 border wrap-break-word">
+                      {it.descricao}
+                      {!isPrint && (it as PedidoItem & { saldo_estoque?: number | null }).saldo_estoque != null && (
+                        <span
+                          className={`ml-2 text-[10px] font-medium ${
+                            Number((it as PedidoItem & { saldo_estoque?: number | null }).saldo_estoque) < qt
+                              ? 'text-red-600'
+                              : 'text-muted-foreground'
+                          }`}
+                          title="Saldo em estoque no Hiper (no momento da sincronização)"
+                        >
+                          • estoque: {Number((it as PedidoItem & { saldo_estoque?: number | null }).saldo_estoque)}
+                        </span>
+                      )}
+                    </td>
                     <td className="px-2 py-1 border text-right font-mono">{qt}</td>
                     <td className="px-2 py-1 border">{it.unidade}</td>
                     <td className="px-2 py-1 border text-right font-mono">{qe > 0 ? qe : '—'}</td>
@@ -178,6 +199,14 @@ export function MapaCarregamento({
         <Grid cols={3}>
           <KV label="Peso Bruto Total" value={pesoBruto > 0 ? `${pesoBruto.toFixed(2)} kg` : '—'} />
           <KV label="Peso Líquido Total" value={pesoLiquido > 0 ? `${pesoLiquido.toFixed(2)} kg` : '—'} />
+          <KV label="Frete" value={Number(pedido.valor_frete) > 0 ? fmtMoney(Number(pedido.valor_frete)) : '—'} />
+          {pedido.nf_numero && (
+            <KV
+              label="Nota Fiscal"
+              value={`Nº ${pedido.nf_numero}${pedido.nf_emitida_em ? ` · ${fmtDate(pedido.nf_emitida_em.slice(0, 10))}` : ''}`}
+              className="col-span-2 [&_.kv-value]:text-emerald-700 [&_.kv-value]:font-semibold"
+            />
+          )}
           <KV
             label="Valor Total"
             value={fmtMoney(Number(pedido.valor_total))}
