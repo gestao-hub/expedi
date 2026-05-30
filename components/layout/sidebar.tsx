@@ -128,7 +128,8 @@ export function Sidebar({ empresa }: { empresa?: EmpresaAtual | null }) {
   const { profile } = useUser();
   const pathname = usePathname();
   const { setTheme, resolvedTheme } = useTheme();
-  const sections = NAV[profile.role] ?? NAV.vendedor;
+  // Operador (platform admin) tem sidebar enxuta — só "Plataforma".
+  const sections = profile.is_platform_admin ? [] : (NAV[profile.role] ?? NAV.vendedor);
   const activeHref = findActiveHref(pathname, sections);
 
   return (

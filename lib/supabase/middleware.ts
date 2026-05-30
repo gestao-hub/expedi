@@ -48,14 +48,15 @@ export async function updateSession(request: NextRequest) {
   if (user && pathname === '/login') {
     const { data: profile } = await supabase
       .from('profiles')
-      .select('role')
+      .select('role, is_platform_admin')
       .eq('id', user.id)
       .single();
 
     const url = request.nextUrl.clone();
     url.pathname =
-      profile?.role === 'logistica' ? '/logistica' :
-      profile?.role === 'admin'     ? '/admin'     :
+      profile?.is_platform_admin    ? '/plataforma' :
+      profile?.role === 'logistica' ? '/logistica'  :
+      profile?.role === 'admin'     ? '/admin'      :
       '/vendas';
     return NextResponse.redirect(url);
   }
