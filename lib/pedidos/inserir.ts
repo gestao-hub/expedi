@@ -77,6 +77,12 @@ export async function inserirPedido(
     forma_pagamento: d.forma_pagamento ?? null,
     parcelas: d.parcelas ?? null,
     valor_total: d.valor_total,
+    valor_frete: d.valor_frete ?? 0,
+    data_entrega_inicio: d.data_entrega_inicio ?? null,
+    nf_numero: d.nf_numero ?? null,
+    nf_chave: d.nf_chave ?? null,
+    nf_emitida_em: d.nf_emitida_em ?? null,
+    nf_valor: d.nf_valor ?? null,
     observacoes: d.observacoes ?? null,
     status: opts.status,
     storage_pdf_path: d.storage_pdf_path ?? null,
@@ -125,6 +131,7 @@ export async function inserirPedido(
         desconto: it.desconto,
         total: it.total,
         referencia: it.referencia ?? null,
+        saldo_estoque: it.saldo_estoque ?? null,
         ordem: idx,
       }));
       const { error: itErr } = await supabase.from('pedido_itens').insert(itensPayload);

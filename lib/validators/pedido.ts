@@ -19,6 +19,7 @@ export const itemSchema = z.object({
   desconto:       z.number().nonnegative(),
   total:          z.number().nonnegative(),
   referencia:     z.string().max(MID).nullable().optional(),
+  saldo_estoque:  z.number().nullable().optional(),  // saldo no Hiper no momento da ingestão (snapshot)
 });
 
 export const pontoRetiradaSchema = z.object({
@@ -32,6 +33,12 @@ export const pedidoFormSchema = z.object({
   documento_erp:    z.string().max(SHORT).nullable().optional(),
   data_emissao:     z.string().max(SHORT).nullable().optional(),
   data_entrega:     z.string().max(SHORT).nullable().optional(),
+  data_entrega_inicio: z.string().max(SHORT).nullable().optional(),
+  valor_frete:      z.number().nonnegative().nullable().optional(),
+  nf_numero:        z.string().max(SHORT).nullable().optional(),
+  nf_chave:         z.string().max(SHORT).nullable().optional(),
+  nf_emitida_em:    z.string().max(SHORT).nullable().optional(),
+  nf_valor:         z.number().nonnegative().nullable().optional(),
   cliente_codigo:   z.string().max(SHORT).nullable().optional(),
   cliente_nome:     z.string().min(1, 'Nome do cliente obrigatório').max(MID),
   cliente_cnpj_cpf: z.string().max(SHORT).nullable().optional(),

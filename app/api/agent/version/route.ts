@@ -7,6 +7,6 @@ export const runtime = 'nodejs';
  * versão e avisa no log se estiver desatualizado. Override por env AGENT_LATEST_VERSION.
  */
 export async function GET() {
-  const latest = process.env.AGENT_LATEST_VERSION ?? '1.0.0';
+  const latest = process.env.AGENT_LATEST_VERSION ?? '1.1.0';
   return NextResponse.json({ latest });
 }

@@ -136,6 +136,7 @@ export async function atualizarPedidoAction(
         desconto: it.desconto,
         total: it.total,
         referencia: it.referencia ?? null,
+        saldo_estoque: it.saldo_estoque ?? null,
         ordem: idx,
       }));
       const { error: iErr } = await supabase.from('pedido_itens').insert(itens);

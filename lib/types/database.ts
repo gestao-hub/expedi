@@ -550,6 +550,7 @@ export type Database = {
           quantidade: number
           quantidade_entregue: number
           referencia: string | null
+          saldo_estoque: number | null
           total: number
           unidade: string
         }
@@ -569,6 +570,7 @@ export type Database = {
           quantidade?: number
           quantidade_entregue?: number
           referencia?: string | null
+          saldo_estoque?: number | null
           total?: number
           unidade?: string
         }
@@ -588,6 +590,7 @@ export type Database = {
           quantidade?: number
           quantidade_entregue?: number
           referencia?: string | null
+          saldo_estoque?: number | null
           total?: number
           unidade?: string
         }
@@ -723,6 +726,10 @@ export type Database = {
           empresa_id: string
           forma_pagamento: string | null
           id: string
+          nf_chave: string | null
+          nf_emitida_em: string | null
+          nf_numero: string | null
+          nf_valor: number | null
           numero_mapa: number
           observacoes: string | null
           parcelas: string | null
@@ -753,6 +760,10 @@ export type Database = {
           empresa_id?: string
           forma_pagamento?: string | null
           id?: string
+          nf_chave?: string | null
+          nf_emitida_em?: string | null
+          nf_numero?: string | null
+          nf_valor?: number | null
           numero_mapa?: number
           observacoes?: string | null
           parcelas?: string | null
@@ -783,6 +794,10 @@ export type Database = {
           empresa_id?: string
           forma_pagamento?: string | null
           id?: string
+          nf_chave?: string | null
+          nf_emitida_em?: string | null
+          nf_numero?: string | null
+          nf_valor?: number | null
           numero_mapa?: number
           observacoes?: string | null
           parcelas?: string | null
