@@ -55,6 +55,65 @@ public sealed class IngestPonto
     [JsonPropertyName("endereco")] public string? Endereco { get; set; }
     [JsonPropertyName("itens")] public List<IngestItem> Itens { get; set; } = new();
 }
+// ---- Ordem de Serviço (leitura do Hiper) ----
+public sealed class OsHeader
+{
+    public int IdOrdemServico { get; set; }
+    public int IdEntidadeCliente { get; set; }
+    public int IdUsuarioResponsavel { get; set; }
+    public short? Situacao { get; set; }
+    public short? Prioridade { get; set; }
+    public DateTime? DataAbertura { get; set; }
+    public DateTime? DataPrevisao { get; set; }
+    public DateTime? DataConclusao { get; set; }
+    public string? Categoria { get; set; }
+    public string? Observacao { get; set; }
+    public string? DefeitoRelatado { get; set; }
+    public string? Diagnostico { get; set; }
+    public DateTime? GarantiaInicio { get; set; }
+    public DateTime? GarantiaFim { get; set; }
+}
+public sealed class OsServicoRow
+{
+    public string Descricao { get; set; } = "";
+    public decimal Quantidade { get; set; }
+    public decimal ValorUnitario { get; set; }
+    public decimal ValorTotal { get; set; }
+    public string? TecnicoNome { get; set; }
+}
+
+// payload OS pro endpoint /api/ingest/os (snake_case)
+public sealed class IngestOsServico
+{
+    [JsonPropertyName("descricao")] public string Descricao { get; set; } = "";
+    [JsonPropertyName("quantidade")] public decimal Quantidade { get; set; }
+    [JsonPropertyName("valor_unitario")] public decimal ValorUnitario { get; set; }
+    [JsonPropertyName("total")] public decimal Total { get; set; }
+    [JsonPropertyName("tecnico_nome")] public string? TecnicoNome { get; set; }
+}
+public sealed class IngestOsPayload
+{
+    [JsonPropertyName("documento_erp")] public string? DocumentoErp { get; set; }
+    [JsonPropertyName("os_erp_id")] public int OsErpId { get; set; }
+    [JsonPropertyName("hiper_usuario_id")] public int HiperUsuarioId { get; set; }
+    [JsonPropertyName("cliente_nome")] public string ClienteNome { get; set; } = "";
+    [JsonPropertyName("cliente_cnpj_cpf")] public string? ClienteCnpjCpf { get; set; }
+    [JsonPropertyName("cliente_telefone")] public string? ClienteTelefone { get; set; }
+    [JsonPropertyName("categoria")] public string? Categoria { get; set; }
+    [JsonPropertyName("situacao_erp")] public int? SituacaoErp { get; set; }
+    [JsonPropertyName("prioridade")] public int? Prioridade { get; set; }
+    [JsonPropertyName("data_abertura")] public string? DataAbertura { get; set; }
+    [JsonPropertyName("data_previsao")] public string? DataPrevisao { get; set; }
+    [JsonPropertyName("data_conclusao")] public string? DataConclusao { get; set; }
+    [JsonPropertyName("defeito_relatado")] public string? DefeitoRelatado { get; set; }
+    [JsonPropertyName("diagnostico")] public string? Diagnostico { get; set; }
+    [JsonPropertyName("garantia_inicio")] public string? GarantiaInicio { get; set; }
+    [JsonPropertyName("garantia_fim")] public string? GarantiaFim { get; set; }
+    [JsonPropertyName("observacao")] public string? Observacao { get; set; }
+    [JsonPropertyName("itens")] public List<IngestItem> Itens { get; set; } = new();
+    [JsonPropertyName("servicos")] public List<IngestOsServico> Servicos { get; set; } = new();
+}
+
 public sealed class IngestPayload
 {
     [JsonPropertyName("documento_erp")] public string? DocumentoErp { get; set; }

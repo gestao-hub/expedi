@@ -46,6 +46,7 @@ export async function inserirOrdemServico(
     garantia_inicio: d.garantia_inicio ?? null,
     garantia_fim: d.garantia_fim ?? null,
     observacao: d.observacao ?? null,
+    tecnico_nome: d.servicos.find((s) => s.tecnico_nome)?.tecnico_nome ?? null,
     valor_total: valorTotal,
     vendedor_id: opts.vendedorId,
     storage_pdf_path: opts.storagePdfPath ?? null,

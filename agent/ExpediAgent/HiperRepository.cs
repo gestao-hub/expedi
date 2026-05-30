@@ -141,4 +141,103 @@ ORDER BY ipv.sequencia_item;";
             .Select(e => $"{e.T}.{e.C}")
             .ToList();
     }
+
+    // ===== Ordem de Serviço (colunas confirmadas no raio-x do schema) =====
+    public async Task<List<OsHeader>> NovasOrdensServicoAsync(int hwm, short[] situacoes, CancellationToken ct)
+    {
+        var filtro = "";
+        if (situacoes.Length > 0)
+        {
+            var nomes = situacoes.Select((_, i) => "@s" + i).ToArray();
+            filtro = $"AND os.situacao IN ({string.Join(",", nomes)})";
+        }
+        var sql = $@"
+SELECT os.id_ordem_servico, os.id_entidade_cliente, os.id_usuario_cadastro,
+       os.situacao, os.prioridade, os.data_hora_cadastro, os.data_hora_previsao,
+       os.data_hora_finalizacao, os.observacao, c.nome AS categoria,
+       obj.defeito_relatado, obj.diagnostico, obj.data_inicial_garantia, obj.data_final_garantia
+FROM ordem_servico os WITH (NOLOCK)
+LEFT JOIN categoria_ordem_servico c WITH (NOLOCK) ON c.id_categoria_ordem_servico = os.id_categoria_ordem_servico
+OUTER APPLY (SELECT TOP 1 o.defeito_relatado, o.diagnostico, o.data_inicial_garantia, o.data_final_garantia
+             FROM objeto_ordem_servico o WITH (NOLOCK) WHERE o.id_ordem_servico = os.id_ordem_servico) obj
+WHERE os.id_ordem_servico > @hwm {filtro}
+ORDER BY os.id_ordem_servico;";
+        var list = new List<OsHeader>();
+        await using var cn = new SqlConnection(_cs);
+        await cn.OpenAsync(ct);
+        await using var cmd = new SqlCommand(sql, cn);
+        cmd.Parameters.AddWithValue("@hwm", hwm);
+        for (int i = 0; i < situacoes.Length; i++) cmd.Parameters.AddWithValue("@s" + i, situacoes[i]);
+        await using var r = await cmd.ExecuteReaderAsync(ct);
+        DateTime? D(int i) => r.IsDBNull(i) ? null : r.GetDateTime(i);
+        string? S(int i) => r.IsDBNull(i) ? null : Convert.ToString(r.GetValue(i));
+        while (await r.ReadAsync(ct))
+        {
+            list.Add(new OsHeader
+            {
+                IdOrdemServico = r.GetInt32(0),
+                IdEntidadeCliente = r.IsDBNull(1) ? 0 : Convert.ToInt32(r.GetValue(1)),
+                IdUsuarioResponsavel = r.IsDBNull(2) ? 0 : Convert.ToInt32(r.GetValue(2)),
+                Situacao = r.IsDBNull(3) ? null : Convert.ToInt16(r.GetValue(3)),
+                Prioridade = r.IsDBNull(4) ? null : Convert.ToInt16(r.GetValue(4)),
+                DataAbertura = D(5), DataPrevisao = D(6), DataConclusao = D(7),
+                Observacao = S(8), Categoria = S(9),
+                DefeitoRelatado = S(10), Diagnostico = S(11),
+                GarantiaInicio = D(12), GarantiaFim = D(13),
+            });
+        }
+        return list;
+    }
+
+    public async Task<List<IngestItem>> ItensOsAsync(int idOs, CancellationToken ct)
+    {
+        const string sql = @"
+SELECT p.codigo, p.nome, i.quantidade, i.valor_unitario, i.valor_total
+FROM item_ordem_servico i WITH (NOLOCK)
+JOIN produto p WITH (NOLOCK) ON p.id_produto = i.id_produto
+WHERE i.id_ordem_servico = @id;";
+        var list = new List<IngestItem>();
+        await using var cn = new SqlConnection(_cs);
+        await cn.OpenAsync(ct);
+        await using var cmd = new SqlCommand(sql, cn);
+        cmd.Parameters.AddWithValue("@id", idOs);
+        await using var r = await cmd.ExecuteReaderAsync(ct);
+        while (await r.ReadAsync(ct))
+        {
+            var vu = r.GetDecimal(3); var vt = r.GetDecimal(4);
+            list.Add(new IngestItem
+            {
+                Codigo = Convert.ToString(r.GetValue(0)) ?? "", Descricao = r.GetString(1),
+                Quantidade = r.GetDecimal(2), Unidade = "UN",
+                PrecoUnitario = vu, Desconto = 0m, Total = vt,
+            });
+        }
+        return list;
+    }
+
+    public async Task<List<OsServicoRow>> ServicosOsAsync(int idOs, CancellationToken ct)
+    {
+        const string sql = @"
+SELECT s.nome, so.quantidade, so.valor_unitario, so.valor_total, u.nome AS tecnico
+FROM servico_ordem_servico so WITH (NOLOCK)
+JOIN servico s WITH (NOLOCK) ON s.id_servico = so.id_servico
+LEFT JOIN usuario u WITH (NOLOCK) ON u.id_usuario = so.id_usuario_tecnico
+WHERE so.id_ordem_servico = @id;";
+        var list = new List<OsServicoRow>();
+        await using var cn = new SqlConnection(_cs);
+        await cn.OpenAsync(ct);
+        await using var cmd = new SqlCommand(sql, cn);
+        cmd.Parameters.AddWithValue("@id", idOs);
+        await using var r = await cmd.ExecuteReaderAsync(ct);
+        while (await r.ReadAsync(ct))
+        {
+            list.Add(new OsServicoRow
+            {
+                Descricao = r.GetString(0), Quantidade = r.GetDecimal(1),
+                ValorUnitario = r.GetDecimal(2), ValorTotal = r.GetDecimal(3),
+                TecnicoNome = r.IsDBNull(4) ? null : r.GetString(4),
+            });
+        }
+        return list;
+    }
 }
