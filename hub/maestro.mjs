@@ -38,6 +38,8 @@ import { startStorage } from './storage-local.mjs';
 import { loadConfig } from './config.mjs';
 import { bootstrap } from './bootstrap.mjs';
 import { checkAndUpdate } from './updater.mjs';
+import { makeKeys } from './keys.mjs';
+import { exe } from './platform.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const LS = path.join(ROOT, 'scripts', 'local-stack');
@@ -73,17 +75,6 @@ function pgTcpHost(cfg) {
   return cfg.paths.pgHost.startsWith('/') ? '127.0.0.1' : cfg.paths.pgHost;
 }
 
-/** gera ANON/SERVICE keys (HS256, sem exp) com a jwtSecret — via make-keys.sh. */
-function makeKeys(cfg) {
-  const out = execFileSync('bash', [path.join(LS, 'make-keys.sh'), 'all'], {
-    env: { ...process.env, GOTRUE_JWT_SECRET: cfg.jwtSecret },
-    encoding: 'utf8',
-  });
-  const anon = out.match(/^ANON_KEY=(.+)$/m)?.[1] ?? '';
-  const service = out.match(/^SERVICE_ROLE_KEY=(.+)$/m)?.[1] ?? '';
-  return { anon, service };
-}
-
 // --------------------------------------------------------------------------
 // Construtores das peças (Supervisors). Funções pequenas, uma por serviço.
 // --------------------------------------------------------------------------
@@ -94,7 +85,7 @@ function pgSupervisor(cfg, logDir) {
   // Supervisor só pra registro/status, com maxRestarts=0.
   return new Supervisor({
     name: 'postgres',
-    cmd: path.join(PG_BIN, 'pg_ctl'),
+    cmd: exe(path.join(PG_BIN, 'pg_ctl')),
     args: [
       '-D', cfg.paths.pgHost,
       '-o', `-p ${cfg.ports.pg} -k ${cfg.paths.pgHost} -h 127.0.0.1`,
@@ -109,7 +100,7 @@ function pgSupervisor(cfg, logDir) {
 function postgrestSupervisor(cfg, logDir) {
   return new Supervisor({
     name: 'postgrest',
-    cmd: path.join(LS, 'bin', 'postgrest'),
+    cmd: exe(path.join(LS, 'bin', 'postgrest')),
     args: [path.join(LS, 'postgrest.conf')],
     cwd: ROOT,
     env: {
@@ -126,7 +117,7 @@ function gotrueSupervisor(cfg, logDir) {
   const host = pgTcpHost(cfg);
   return new Supervisor({
     name: 'gotrue',
-    cmd: path.join(LS, 'bin', 'auth'),
+    cmd: exe(path.join(LS, 'bin', 'auth')),
     args: ['serve'],
     cwd: ROOT,
     env: {
@@ -268,7 +259,7 @@ export async function startMaestro(cfg, opts = {}) {
   // 4. App Next standalone --------------------------------------------------
   let keys = { anon: '', service: '' };
   if (startApp) {
-    keys = makeKeys(cfg);
+    keys = makeKeys(cfg.jwtSecret);
     logger.info(`subindo app :${cfg.ports.app}`);
     supervisors.app = appSupervisor(cfg, logDir, keys).start();
     await waitForHttp(`http://127.0.0.1:${cfg.ports.app}/login`, 60000);
@@ -324,7 +315,7 @@ export async function startMaestro(cfg, opts = {}) {
     // Em reusePg NÃO paramos — o cluster não é nosso.
     if (!reusePg) {
       try {
-        execFileSync(path.join(PG_BIN, 'pg_ctl'), ['-D', cfg.paths.pgHost, 'stop', '-m', 'fast'], {
+        execFileSync(exe(path.join(PG_BIN, 'pg_ctl')), ['-D', cfg.paths.pgHost, 'stop', '-m', 'fast'], {
           stdio: 'ignore',
         });
       } catch {
