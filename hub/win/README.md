@@ -37,10 +37,9 @@ C:\Exped\
 > `scripts\local-stack\bin\postgrest`, `scripts\local-stack\bin\auth` e
 > `scripts\local-stack\bin\migrations`. **Não** lê de `C:\Exped\bin\`.
 > Por isso o payload coloca `auth.exe` + `migrations\` em
-> `scripts\local-stack\bin\`, e o `download-binaries.ps1` deve deixar uma cópia do
-> `postgrest.exe` lá também. Veja a seção **Concerns / Windows-only** no fim — há
-> ajustes na camada Node (extensão `.exe`, `bash` do `make-keys.sh`) que **precisam
-> ser confirmados na 1ª subida no Windows**.
+> `scripts\local-stack\bin\`, e o `download-binaries.ps1` deixa o `postgrest.exe` lá.
+> O maestro resolve `.exe` sozinho (helper `exe()`), então **não** é preciso cópia sem
+> extensão. Veja **Notas de portabilidade** no fim (os antigos bloqueios já foram corrigidos).
 
 ---
 
@@ -132,6 +131,38 @@ cp config.example.json                   payload/config.json
 > maestro lê de `scripts\local-stack\bin\`, garanta que o `auth.exe`+`migrations\`
 > estejam **também** em `payload\scripts\local-stack\bin\` (passo **d**). Os SQL,
 > `gateway.mjs`, `postgrest.conf` e `make-keys.sh` entram via `payload\scripts\`.
+
+---
+
+## Fase 1.5 — Smoke direto, SEM instalador (recomendado fazer primeiro)  **[WIN]**
+
+Antes de empacotar, prove que o stack inteiro sobe no Windows rodando o maestro à mão.
+Pré-requisitos (tudo na máquina Windows, dentro do repo clonado):
+- `npm ci && npm run build` (gera `.next/standalone`).
+- Binários baixados: `powershell -ExecutionPolicy Bypass -File hub\win\download-binaries.ps1`
+  (Postgres em `C:\Exped\bin\pgsql`, `postgrest.exe`+`node`+`nssm` baixados).
+- `auth.exe` (GoTrue) + `migrations\` gerados (Fase 1.2) e copiados pra `scripts\local-stack\bin\`.
+  Também copie/garanta `postgrest.exe` em `scripts\local-stack\bin\` (é onde o maestro lê).
+- **Node disponível** (use `C:\Exped\bin\node\node.exe` ou um Node instalado).
+
+Rodar (PowerShell, no repo):
+```powershell
+# segredo obrigatório (>=32 chars). Gere um aleatório:
+$env:EXPED_JWT_SECRET = -join ((48..57)+(97..102) | Get-Random -Count 48 | % {[char]$_})
+# onde estão initdb.exe/pg_ctl.exe/psql.exe:
+$env:EXPED_PG_BIN = "C:\Exped\bin\pgsql\bin"
+# (confira em hub/config.mjs / hub/maestro.mjs se há outras envs EXPED_* de path no seu layout)
+node hub\maestro.mjs
+```
+Validar (outro terminal):
+```powershell
+curl http://127.0.0.1:3001/status     # lista as peças com running:true
+curl http://127.0.0.1:3000/login      # 200 (app no ar)
+```
+Se subir tudo, o Jeito A está provado no Windows e seguimos pro instalador. Se travar,
+me mande o `maestro.log` / a saída do terminal — eu corrijo. **Dica pro Claude do Windows:**
+leia `hub/config.mjs` (envs `EXPED_*`) e `hub/maestro.mjs` (ordem de boot + caminhos) pra
+ajustar paths do seu layout antes de rodar.
 
 ---
 
@@ -255,36 +286,24 @@ powershell -ExecutionPolicy Bypass -File C:\Exped\hub\win\uninstall-service.ps1 
 
 ---
 
-## Concerns / pontos que SÓ se confirmam no Windows
+## Notas de portabilidade (Windows)
 
-Estes pontos vivem na camada Node (`hub/maestro.mjs`), provada no **Linux**. Na
-**primeira subida no Windows** eles precisam ser confirmados/ajustados — não dá pra
-validar daqui:
+1. **Extensão `.exe` — RESOLVIDO.** O maestro usa o helper `exe()` (`hub/platform.mjs`)
+   que anexa `.exe` automaticamente quando `process.platform === 'win32'` em TODOS os
+   spawns de binário (`pg_ctl`, `postgrest`, `auth`). Nenhuma cópia sem extensão é necessária.
+2. **Geração de chaves — RESOLVIDO.** O maestro gera as chaves anon/service_role via
+   `node:crypto` (`hub/keys.mjs`, `makeKeys()`), sem `bash`/`python3`. Windows limpo basta.
+   (O `make-keys.sh` antigo continua no repo mas o maestro NÃO o usa.)
+3. **Segredo obrigatório.** O hub **não sobe** sem `EXPED_JWT_SECRET` (>=32 chars, ≠ placeholder).
+   O `.iss` gera um aleatório no `config.json` e o `install-service.ps1` o injeta como
+   `EXPED_JWT_SECRET`. **Para rodar o maestro à mão** (smoke direto, sem instalador),
+   **defina você mesmo** essa env (ver Fase 0).
+4. **Storage exige token.** O `storage-local` agora rejeita request sem JWT válido (401).
+   O app envia o token (o gateway repassa os headers), então é transparente — só não tente
+   abrir o PDF por URL crua sem o header de auth.
+5. **`config.json` não é lido pelo maestro** — o `install-service.ps1` traduz `config.json`
+   → env `EXPED_*` do serviço. Se editar o `config.json` depois, rode o `install-service.ps1`
+   de novo pra propagar.
 
-1. **Extensão `.exe`** — o maestro faz `spawn` de `scripts\local-stack\bin\postgrest`
-   e `...\bin\auth` (sem `.exe`). No Windows, `child_process.spawn` sem `shell:true`
-   **não** auto-anexa `.exe`. Mitigação no pacote: deixar os arquivos como `postgrest`
-   **e** `postgrest.exe` (cópia), idem `auth`/`auth.exe`, ou ajustar o maestro pra
-   anexar `.exe` em `process.platform === 'win32'`. Confirmar no 1º start.
-
-2. **`pg_ctl` (`EXPED_PG_BIN`)** — o `install-service.ps1` já injeta
-   `EXPED_PG_BIN=C:\Exped\bin\pgsql\bin`, e o `spawn` do `pg_ctl` resolve `.exe`
-   pelo PATHEXT só quando via shell; como acima, confirmar se precisa do `.exe`
-   explícito.
-
-3. **`make-keys.sh` precisa de `bash` + `python3`** — `maestro.makeKeys()` faz
-   `execFileSync('bash', ['scripts/local-stack/make-keys.sh', 'all'])`, e o script
-   usa `python3`. Em Windows limpo **não há `bash` nem `python3`** → a geração das
-   chaves anon/service_role do app falha (o app não sobe). Opções: (a) portar a
-   geração das chaves pra Node puro no maestro (HMAC-SHA256 via `node:crypto` — o
-   `updater.mjs` já usa `node:crypto`); (b) instalar Git-for-Windows (traz `bash`) +
-   Python. **(a) é a correção recomendada** e elimina dependência externa. Este é o
-   bloqueio mais provável da 1ª subida no Windows.
-
-4. **`config.json` não é lido pelo maestro** — por isso o `install-service.ps1`
-   traduz `config.json` → env `EXPED_*` do serviço. Se editar `config.json` depois,
-   rode o `install-service.ps1` de novo pra propagar.
-
-Os artefatos deste diretório (instalador, serviço, firewall, runbook) estão corretos
-e completos; os itens 1–3 são da camada Node e devem ser endereçados antes do
-"RUNNING" pleno no Windows.
+Todos os bloqueios cross-platform conhecidos foram corrigidos (PRs #20/#21, 40 testes hub
+verdes no Linux). O que resta é validação real no Windows (binários nativos + instalador).
