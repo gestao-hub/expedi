@@ -499,11 +499,19 @@ export function makePsqlDb(cfg) {
       // Upsert em auth.users LOCAL (login offline via GoTrue local). auth.users NÃO tem
       // o trigger stamp_sync (só tabelas public têm), mas usamos transação mesmo
       // (consistência + futura-prova). PK = id.
-      // confirmed_at é coluna gerada (calculada de email_confirmed_at + phone_confirmed_at)
-      // e não pode ser inserida explicitamente — filtramos aqui.
+      // confirmed_at é coluna gerada — não pode ser inserida explicitamente.
+      // Campos de token (confirmation_token etc.) vêm NULL da nuvem para usuários já
+      // confirmados; GoTrue v2 exige string vazia (não NULL) nesses campos.
       const AUTH_GENERATED_COLS = new Set(['confirmed_at']);
+      const AUTH_TOKEN_COLS = new Set([
+        'confirmation_token', 'recovery_token', 'email_change_token_new',
+        'email_change', 'email_change_token_current', 'phone_change',
+        'phone_change_token', 'reauthentication_token',
+      ]);
       const filteredRow = Object.fromEntries(
-        Object.entries(row).filter(([k]) => !AUTH_GENERATED_COLS.has(k)),
+        Object.entries(row)
+          .filter(([k]) => !AUTH_GENERATED_COLS.has(k))
+          .map(([k, v]) => [k, AUTH_TOKEN_COLS.has(k) && v === null ? '' : v]),
       );
       const json = JSON.stringify(filteredRow).replace(/'/g, "''");
       const cols = Object.keys(filteredRow).map((c) => `"${c.replace(/"/g, '""')}"`);
