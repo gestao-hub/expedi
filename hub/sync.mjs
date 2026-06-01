@@ -36,6 +36,8 @@ const execFileAsync = promisify(execFile);
 
 export const EPOCH = '1970-01-01T00:00:00Z';
 export const SYNC_LIMIT = 500;
+/** Chave do cursor de auth.users (login offline) — fora do registro public. */
+export const AUTH_USERS_KEY = 'auth.users';
 
 // --------------------------------------------------------------------------
 // Estado observável (pro /status do maestro).
@@ -197,37 +199,89 @@ export async function syncOnce({ db, apiBase, deviceToken, fetchImpl = globalThi
   }
 
   if (cursorsReq) {
-    let pulled;
+    // Cursor próprio de auth.users (login offline) — não está no registro public.
     try {
-      pulled = await doPull({ cursors: cursorsReq });
+      const cur = await db.getCursor(AUTH_USERS_KEY);
+      cursorsReq[AUTH_USERS_KEY] = cur.pull_at || EPOCH;
     } catch (e) {
-      // offline / erro de rede: NÃO avança nada, re-tenta depois.
       ok = false;
       firstError ??= e?.message || String(e);
-      logger.error(`sync pull: ${e?.message}`);
-      pulled = null;
     }
 
-    if (pulled && pulled.tables) {
-      for (const t of SYNC_TABLES) {
-        const rows = pulled.tables[t.name];
-        if (!rows || rows.length === 0) continue;
-        try {
-          // Upsert por PK; linhas com deleted_at aplicam soft-delete (é só um upsert
-          // da linha já marcada — o estado deleted_at vem da nuvem).
-          for (const row of rows) {
-            await db.upsert(t.name, t.pk, row);
+    // Paginação (cold start + incremental): a API devolve no máx SYNC_LIMIT/tabela
+    // por request. Se um lote vem cheio, ainda há mais — repete o pull avançando os
+    // cursores até todos os lotes virem < SYNC_LIMIT. `tem mais` = lote cheio (===limit).
+    // Guarda contra loop infinito: se o cursor não avança num lote cheio, para.
+    let hasMore = true;
+    let guard = 0;
+    const MAX_PAGES = 10000;
+    while (hasMore && cursorsReq) {
+      if (++guard > MAX_PAGES) {
+        ok = false;
+        firstError ??= 'sync pull: muitas páginas (loop?)';
+        logger.error('sync pull: excedeu MAX_PAGES — abortando paginação');
+        break;
+      }
+      let pulled;
+      try {
+        pulled = await doPull({ cursors: cursorsReq });
+      } catch (e) {
+        // offline / erro de rede: NÃO avança nada, re-tenta depois.
+        ok = false;
+        firstError ??= e?.message || String(e);
+        logger.error(`sync pull: ${e?.message}`);
+        pulled = null;
+      }
+      if (!pulled) break;
+
+      hasMore = false;
+
+      // Tabelas public.
+      if (pulled.tables) {
+        for (const t of SYNC_TABLES) {
+          const rows = pulled.tables[t.name];
+          if (!rows || rows.length === 0) continue;
+          try {
+            // Upsert por PK (sobrescrita pra tabelas down — read-only no hub; merge
+            // já foi resolvido na nuvem pras two-way). Linhas com deleted_at aplicam
+            // soft-delete (é só um upsert da linha já marcada — estado vem da nuvem).
+            for (const row of rows) {
+              await db.upsert(t.name, t.pk, row);
+            }
+            // Avança pull_at = nextCursor da nuvem (ou max local) — só após aplicar.
+            const next =
+              (pulled.nextCursors && pulled.nextCursors[t.name]) ||
+              maxUpdatedAt(rows, cursorsReq[t.name]);
+            cursorsReq[t.name] = next;
+            await db.setCursor(t.name, { pull_at: next });
+            // Lote cheio → provavelmente tem mais desta tabela; pagina de novo.
+            if (rows.length >= SYNC_LIMIT) hasMore = true;
+          } catch (e) {
+            ok = false;
+            firstError ??= e?.message || String(e);
+            logger.error(`sync pull apply ${t.name}: ${e?.message}`);
+            // cursor desta tabela NÃO avança.
           }
-          // Avança pull_at = nextCursor da nuvem (ou max local) — só após aplicar.
+        }
+      }
+
+      // auth.users (login offline): upsert em auth.users LOCAL, cursor próprio.
+      const authRows = pulled.auth_users;
+      if (authRows && authRows.length > 0) {
+        try {
+          for (const row of authRows) {
+            await db.upsertAuthUser(row);
+          }
           const next =
-            (pulled.nextCursors && pulled.nextCursors[t.name]) ||
-            maxUpdatedAt(rows, cursorsReq[t.name]);
-          await db.setCursor(t.name, { pull_at: next });
+            (pulled.nextCursors && pulled.nextCursors[AUTH_USERS_KEY]) ||
+            maxUpdatedAt(authRows, cursorsReq[AUTH_USERS_KEY]);
+          cursorsReq[AUTH_USERS_KEY] = next;
+          await db.setCursor(AUTH_USERS_KEY, { pull_at: next });
+          if (authRows.length >= SYNC_LIMIT) hasMore = true;
         } catch (e) {
           ok = false;
           firstError ??= e?.message || String(e);
-          logger.error(`sync pull apply ${t.name}: ${e?.message}`);
-          // cursor desta tabela NÃO avança.
+          logger.error(`sync pull apply auth.users: ${e?.message}`);
         }
       }
     }
@@ -299,6 +353,27 @@ async function psqlCmd(cfg, sql) {
     { env: PSQL_ENV, maxBuffer: 1024 * 1024 * 32 },
   );
   return stdout;
+}
+
+/**
+ * roda `sql` (um único statement de escrita) DENTRO de uma transação que liga a flag
+ * `exped.sync='on'` via SET LOCAL. Assim o trigger stamp_sync/set_updated_at do
+ * Postgres local NÃO recarimba updated_at/field_updated_at — os carimbos aplicados são
+ * exatamente os canônicos vindos da nuvem (evita churn: linha recém-baixada não vira
+ * "alterada" e volta no próximo push).
+ *
+ * O GUC custom `exped.sync` NÃO exige superuser (mesma abordagem do RPC da nuvem, ver
+ * supabase/migrations/20260601000003_sync_guc_trigger.sql). `SET LOCAL` vale só nesta
+ * transação. NOTA: efeito só no psql REAL; o db fake dos testes não tem trigger, então
+ * o comportamento observável (upsert por PK) é idêntico — o bypass é transparente.
+ */
+async function psqlSyncWrite(cfg, sql) {
+  const body = `begin; set local exped.sync = 'on'; ${sql}; commit;`;
+  await execFileAsync(
+    'psql',
+    [...psqlArgs(cfg), '-v', 'ON_ERROR_STOP=1', '-c', body],
+    { env: PSQL_ENV, maxBuffer: 1024 * 1024 * 32 },
+  );
 }
 
 /** roda uma query que retorna JSON agregado (uma linha, uma coluna) e parseia. */
@@ -385,11 +460,32 @@ export function makePsqlDb(cfg) {
         .join(', ');
       const colList = cols.join(', ');
       const setClause = updates ? `do update set ${updates}` : 'do nothing';
-      await psqlCmd(
+      // Escrita com a flag exped.sync ligada (bypass do trigger local — ver psqlSyncWrite).
+      await psqlSyncWrite(
         cfg,
         `insert into public.${table} (${colList}) ` +
           `select ${colList} from jsonb_populate_record(null::public.${table}, '${json}'::jsonb) ` +
           `on conflict ("${pk}") ${setClause}`,
+      );
+    },
+
+    async upsertAuthUser(row) {
+      // Upsert em auth.users LOCAL (login offline via GoTrue local). auth.users NÃO tem
+      // o trigger stamp_sync (só tabelas public têm), mas usamos transação mesmo
+      // (consistência + futura-prova). PK = id.
+      const json = JSON.stringify(row).replace(/'/g, "''");
+      const cols = Object.keys(row).map((c) => `"${c.replace(/"/g, '""')}"`);
+      const updates = cols
+        .filter((c) => c !== '"id"')
+        .map((c) => `${c} = excluded.${c}`)
+        .join(', ');
+      const colList = cols.join(', ');
+      const setClause = updates ? `do update set ${updates}` : 'do nothing';
+      await psqlSyncWrite(
+        cfg,
+        `insert into auth.users (${colList}) ` +
+          `select ${colList} from jsonb_populate_record(null::auth.users, '${json}'::jsonb) ` +
+          `on conflict ("id") ${setClause}`,
       );
     },
   };

@@ -15,6 +15,7 @@ const fakeDb = {
   parentBelongsToEmpresa: vi.fn(),
   upsertRaw: vi.fn(),
   setSyncReplica: vi.fn(async () => {}),
+  selectAuthUsers: vi.fn(async (): Promise<Record<string, unknown>[]> => []),
 };
 
 // Supabase admin mock: suporta a cadeia de resolveDevice (from('dispositivos')...).
@@ -63,6 +64,7 @@ function req(body: unknown, token?: string): Request {
 beforeEach(() => {
   vi.clearAllMocks();
   fakeDb.findCanonicalGlobal.mockResolvedValue(null);
+  fakeDb.selectAuthUsers.mockResolvedValue([]);
   deviceRow = { id: 'D1', empresa_id: 'E1', ativo: true };
 });
 
@@ -95,6 +97,19 @@ describe('POST /api/sync/pull', () => {
     expect(json.nextCursors.clientes).toBe('2026-01-05T00:00:00Z');
     // o escopo por empresa foi passado ao db
     expect(fakeDb.selectChanges).toHaveBeenCalledWith('clientes', 'E1', '2026-01-01T00:00:00Z', 500);
+  });
+
+  it('retorna auth_users escopado por empresa (do device) + cursor próprio', async () => {
+    fakeDb.selectAuthUsers.mockResolvedValue([
+      { id: 'u1', email: 'a@e1', encrypted_password: 'h', updated_at: '2026-02-01T00:00:00Z' },
+    ]);
+    const res = await pullPOST(req({ cursors: { 'auth.users': '2026-01-01T00:00:00Z' } }, 'tok') as never);
+    expect(res.status).toBe(200);
+    const json = await res.json();
+    expect(json.auth_users.map((u: { id: string }) => u.id)).toEqual(['u1']);
+    expect(json.nextCursors['auth.users']).toBe('2026-02-01T00:00:00Z');
+    // escopo: empresa do device (E1) é passada ao db, nunca o que vem do payload.
+    expect(fakeDb.selectAuthUsers).toHaveBeenCalledWith('E1', '2026-01-01T00:00:00Z', 500);
   });
 });
 

@@ -13,7 +13,10 @@
  *    `empresa_id`, seguindo a cadeia `parent` até chegar nele (subquery pelo pai).
  *    Ex.: `pedido_itens` → `pedido_pontos_retirada` → `pedidos.empresa_id`.
  *
- * Obs.: `auth.users` (login offline) é tratado à parte na Task 5 — não entra aqui.
+ * Obs.: `auth.users` (login offline) é tratado à parte (não entra neste registro):
+ * o pull retorna `auth_users` escopado por empresa via `profiles` (ver engine.runPull
+ * + SyncDb.selectAuthUsers); o cliente aplica num upsert em auth.users LOCAL com cursor
+ * próprio (`AUTH_USERS_KEY`). É read-only no hub (nunca sobe).
  */
 
 export type SyncDir = 'two-way' | 'down';

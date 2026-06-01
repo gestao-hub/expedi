@@ -44,12 +44,24 @@ export type SyncDb = {
   upsertRaw(table: string, row: Row): Promise<Row | null>;
   /** Liga/desliga o trigger de stamp pra escrever field_updated_at/updated_at mergeados. */
   setSyncReplica(on: boolean): Promise<void>;
+  /**
+   * Linhas de `auth.users` (login offline) cujos `id` estão em `profiles` da empresa
+   * (`profiles.empresa_id = empresaId`), com `updated_at > cursor`, ordenadas asc,
+   * limitadas a `limit`. Escopo por empresa SEMPRE server-side. Só as colunas que o
+   * GoTrue local precisa pra autenticar (id, email, encrypted_password, etc.).
+   */
+  selectAuthUsers(empresaId: string, cursor: string, limit: number): Promise<Row[]>;
 };
 
 export type PullResult = {
   tables: Record<string, Row[]>;
   nextCursors: Record<string, string>;
+  /** Linhas de auth.users escopadas à empresa (login offline). */
+  auth_users: Row[];
 };
+
+/** Chave do cursor de auth.users (fora do registro de tabelas public). */
+export const AUTH_USERS_KEY = 'auth.users';
 
 export async function runPull(
   db: SyncDb,
@@ -72,7 +84,17 @@ export async function runPull(
     nextCursors[t.name] = max;
   }
 
-  return { tables, nextCursors };
+  // auth.users (login offline): escopado por empresa via profiles, cursor próprio.
+  const authCursor = cursors[AUTH_USERS_KEY] ?? EPOCH;
+  const authUsers = await db.selectAuthUsers(empresaId, authCursor, PULL_LIMIT);
+  let authMax = authCursor;
+  for (const r of authUsers) {
+    const u = String(r.updated_at ?? '');
+    if (u > authMax) authMax = u;
+  }
+  nextCursors[AUTH_USERS_KEY] = authMax;
+
+  return { tables, nextCursors, auth_users: authUsers };
 }
 
 export type PushResult = {

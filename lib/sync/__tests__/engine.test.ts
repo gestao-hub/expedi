@@ -73,6 +73,17 @@ function makeDb(seed: Record<string, Row[]> = {}) {
     async setSyncReplica(on) {
       replicaCalls.push(on);
     },
+    async selectAuthUsers(empresaId, cursor, limit) {
+      // profiles da empresa → ids; depois filtra auth.users por esses ids.
+      const profIds = new Set(
+        (store.profiles ?? []).filter((p) => p.empresa_id === empresaId).map((p) => String(p.id)),
+      );
+      const rows = (store['auth.users'] ?? []).filter(
+        (u) => profIds.has(String(u.id)) && String(u.updated_at ?? '') > cursor,
+      );
+      rows.sort((a, b) => String(a.updated_at).localeCompare(String(b.updated_at)));
+      return rows.slice(0, limit).map((r) => ({ ...r }));
+    },
   };
   return { db, store, replicaCalls };
 }
@@ -101,6 +112,33 @@ describe('runPull', () => {
     const res = await runPull(db, 'E1', {});
     expect(res.tables.clientes.map((r) => r.id)).toEqual(['c1']);
     expect(res.nextCursors.clientes).toBe('2020-01-01T00:00:00Z');
+  });
+
+  it('auth_users: só usuários cujo profile é da empresa, com cursor próprio', async () => {
+    const { db } = makeDb({
+      profiles: [
+        { id: 'u1', empresa_id: 'E1' },
+        { id: 'u2', empresa_id: 'E2' }, // outra empresa
+      ],
+      'auth.users': [
+        { id: 'u1', email: 'a@e1', encrypted_password: 'h1', updated_at: '2026-01-03T00:00:00Z' },
+        { id: 'u2', email: 'b@e2', encrypted_password: 'h2', updated_at: '2026-01-04T00:00:00Z' },
+      ],
+    });
+    const res = await runPull(db, 'E1', {});
+    expect(res.auth_users.map((u) => u.id)).toEqual(['u1']); // u2 é de E2, nunca vem
+    expect(res.auth_users[0].encrypted_password).toBe('h1');
+    expect(res.nextCursors['auth.users']).toBe('2026-01-03T00:00:00Z');
+  });
+
+  it('auth_users: respeita o cursor (só > cursor)', async () => {
+    const { db } = makeDb({
+      profiles: [{ id: 'u1', empresa_id: 'E1' }],
+      'auth.users': [{ id: 'u1', email: 'a@e1', updated_at: '2026-01-01T00:00:00Z' }],
+    });
+    const res = await runPull(db, 'E1', { 'auth.users': '2026-06-01T00:00:00Z' });
+    expect(res.auth_users).toEqual([]);
+    expect(res.nextCursors['auth.users']).toBe('2026-06-01T00:00:00Z');
   });
 });
 

@@ -127,5 +127,34 @@ export function makeSupabaseSyncDb(supabase: Admin): SyncDb {
       // RPC sync_push_upsert. (PostgREST usa pool de conexões; um SET fora da
       // transação do upsert não persistiria.)
     },
+
+    async selectAuthUsers(empresaId, cursor, limit) {
+      // Escopo por empresa SEMPRE server-side: só os auth.users cujo id está em
+      // profiles da empresa. NUNCA retorna usuário de outra empresa.
+      const { data: profs, error: pErr } = await supabase
+        .from('profiles')
+        .select('id')
+        .eq('empresa_id', empresaId);
+      if (pErr) throw pErr;
+      const ids = (profs ?? []).map((r) => r.id as string);
+      if (ids.length === 0) return [];
+
+      // Só as colunas que o GoTrue local precisa pra autenticar (read-only, escopado).
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
+        .schema('auth')
+        .from('users')
+        .select(
+          'id, email, encrypted_password, email_confirmed_at, raw_user_meta_data, ' +
+            'raw_app_meta_data, aud, role, created_at, updated_at, instance_id, ' +
+            'phone, confirmed_at, last_sign_in_at, is_sso_user, is_anonymous, banned_until, deleted_at',
+        )
+        .in('id', ids)
+        .gt('updated_at', cursor)
+        .order('updated_at', { ascending: true })
+        .limit(limit);
+      if (error) throw error;
+      return (data ?? []) as Row[];
+    },
   };
 }

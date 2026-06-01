@@ -44,6 +44,9 @@ function makeMemDb() {
     async upsert(table, pk, row) {
       tbl(table).set(row[pk], { ...row });
     },
+    async upsertAuthUser(row) {
+      tbl('auth.users').set(row.id, { ...row });
+    },
     // helpers de teste
     get(table, id) {
       return tbl(table).get(id);
@@ -253,6 +256,111 @@ describe('syncOnce — offline-safe', () => {
     const st = getState();
     expect(st.lastSyncOk).toBe(false);
     expect(String(st.lastError)).toContain('boom-offline');
+  });
+});
+
+describe('syncOnce — paginação / cold start', () => {
+  let db;
+  beforeEach(() => {
+    db = makeMemDb();
+  });
+
+  it('cold start: 2 páginas (500 + 30) → 2 requests, 530 linhas, cursor = max da última', async () => {
+    // Página 1: 500 linhas (lote cheio → "tem mais"); página 2: 30 (< limite → fim).
+    const page1 = Array.from({ length: 500 }, (_, i) => {
+      const n = String(i + 1).padStart(4, '0');
+      return { id: `c${n}`, nome: `N${n}`, updated_at: `2026-01-01T00:00:${(i % 60).toString().padStart(2, '0')}.${n}Z` };
+    });
+    // garante ordenação crescente determinística por updated_at
+    page1.forEach((r, i) => {
+      r.updated_at = `2026-01-01T${String(Math.floor(i / 60)).padStart(2, '0')}:${String(i % 60).padStart(2, '0')}:00.000Z`;
+    });
+    const page2 = Array.from({ length: 30 }, (_, i) => {
+      const n = String(500 + i + 1).padStart(4, '0');
+      return { id: `c${n}`, nome: `N${n}`, updated_at: `2026-01-02T00:${String(i).padStart(2, '0')}:00.000Z` };
+    });
+    const lastCursor = page2[page2.length - 1].updated_at;
+
+    let calls = 0;
+    const pullFn = async ({ cursors }) => {
+      calls += 1;
+      if (calls === 1) {
+        return { tables: { clientes: page1 }, nextCursors: { clientes: page1[499].updated_at } };
+      }
+      // 2ª chamada: o cliente deve ter avançado o cursor de clientes pro fim da pág1
+      expect(cursors.clientes).toBe(page1[499].updated_at);
+      return { tables: { clientes: page2 }, nextCursors: { clientes: lastCursor } };
+    };
+    const pushFn = async () => ({ tables: {} });
+
+    const res = await syncOnce({ db, apiBase, deviceToken, pullFn, pushFn });
+
+    expect(res.ok).toBe(true);
+    expect(calls).toBe(2); // exatamente 2 requests (lote cheio → repetiu; 2º < limite → parou)
+    expect(db.count('clientes')).toBe(530); // 500 + 30 aplicadas
+    expect((await db.getCursor('clientes')).pull_at).toBe(lastCursor);
+  });
+
+  it('lote < limite numa única página → 1 request só', async () => {
+    let calls = 0;
+    const pullFn = async () => {
+      calls += 1;
+      return {
+        tables: { clientes: [{ id: 'c1', updated_at: '2026-01-01T00:00:00Z' }] },
+        nextCursors: { clientes: '2026-01-01T00:00:00Z' },
+      };
+    };
+    const pushFn = async () => ({ tables: {} });
+    await syncOnce({ db, apiBase, deviceToken, pullFn, pushFn });
+    expect(calls).toBe(1);
+  });
+});
+
+describe('syncOnce — auth.users (login offline)', () => {
+  let db;
+  beforeEach(() => {
+    db = makeMemDb();
+  });
+
+  it('aplica auth_users via upsertAuthUser e avança cursor próprio auth.users', async () => {
+    const pullFn = async () => ({
+      tables: {},
+      auth_users: [
+        { id: 'u1', email: 'a@e1', encrypted_password: 'h1', updated_at: '2026-03-01T00:00:00Z' },
+      ],
+      nextCursors: { 'auth.users': '2026-03-01T00:00:00Z' },
+    });
+    const pushFn = async () => ({ tables: {} });
+
+    const res = await syncOnce({ db, apiBase, deviceToken, pullFn, pushFn });
+
+    expect(res.ok).toBe(true);
+    expect(db.get('auth.users', 'u1').encrypted_password).toBe('h1');
+    expect((await db.getCursor('auth.users')).pull_at).toBe('2026-03-01T00:00:00Z');
+  });
+
+  it('envia o cursor auth.users atual no request de pull', async () => {
+    await db.setCursor('auth.users', { pull_at: '2026-02-15T00:00:00Z' });
+    let received = null;
+    const pullFn = async ({ cursors }) => {
+      received = cursors;
+      return { tables: {}, auth_users: [], nextCursors: {} };
+    };
+    const pushFn = async () => ({ tables: {} });
+    await syncOnce({ db, apiBase, deviceToken, pullFn, pushFn });
+    expect(received['auth.users']).toBe('2026-02-15T00:00:00Z');
+  });
+
+  it('NÃO faz push de auth.users (não está no registro de tabelas)', async () => {
+    db.seed('auth.users', { id: 'u1', email: 'a@e1', updated_at: '2026-02-01T10:00:00Z' });
+    let pushed = null;
+    const pushFn = async ({ rows }) => {
+      pushed = rows;
+      return { tables: rows };
+    };
+    const pullFn = async () => ({ tables: {}, auth_users: [], nextCursors: {} });
+    await syncOnce({ db, apiBase, deviceToken, pullFn, pushFn });
+    expect(pushed === null || pushed['auth.users'] === undefined).toBe(true);
   });
 });
 
