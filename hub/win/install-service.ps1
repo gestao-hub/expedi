@@ -101,6 +101,11 @@ if (Test-Path $ConfigPath) {
     }
     if ($cfg.jwtSecret)   { $envMap['EXPED_JWT_SECRET']  = "$($cfg.jwtSecret)" }
     if ($cfg.manifestUrl) { $envMap['EXPED_MANIFEST_URL'] = "$($cfg.manifestUrl)" }
+    if ($cfg.cloud) {
+        if ($cfg.cloud.apiBase)       { $envMap['EXPED_CLOUD_API']          = "$($cfg.cloud.apiBase)" }
+        if ($cfg.cloud.deviceToken)   { $envMap['EXPED_DEVICE_TOKEN']       = "$($cfg.cloud.deviceToken)" }
+        if ($cfg.cloud.syncIntervalMs){ $envMap['EXPED_SYNC_INTERVAL_MS']   = "$($cfg.cloud.syncIntervalMs)" }
+    }
 } else {
     Write-Host "    AVISO: $ConfigPath nao encontrado - usando defaults do hub/config.mjs (so PATH/EXPED_PG_BIN serao setados)." -ForegroundColor Yellow
 }
