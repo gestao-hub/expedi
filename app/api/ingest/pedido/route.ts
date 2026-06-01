@@ -4,6 +4,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { ingestPedidoSchema } from '@/lib/validators/ingest';
 import { pedidoFormSchema, type PedidoFormInput } from '@/lib/validators/pedido';
 import { extrairPagamentoDoPdfText } from '@/lib/parser/extrair-pagamento';
+import { mapFormaPagamento, parseParcelas } from '@/lib/parser/forma-pagamento';
 import { inserirPedido } from '@/lib/pedidos/inserir';
 
 export const runtime = 'nodejs';
@@ -136,8 +137,9 @@ export async function POST(req: NextRequest) {
     cliente_telefone: d.cliente_telefone ?? null,
     cliente_endereco_id: null,
     // Pagamento estruturado do Hiper (negociacao) tem precedência sobre o do PDF.
-    forma_pagamento: d.forma_pagamento ?? forma_pagamento,
-    parcelas: d.parcelas ?? parcelas,
+    // Texto livre (agente ou PDF) → enum/int via helpers.
+    forma_pagamento: mapFormaPagamento(d.forma_pagamento ?? forma_pagamento),
+    parcelas: parseParcelas(d.parcelas ?? parcelas),
     valor_total: d.valor_total,
     observacoes: d.observacoes ?? null,
     storage_pdf_path,

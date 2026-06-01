@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { FORMAS_PAGAMENTO } from '@/lib/parser/forma-pagamento';
 
 /**
  * Limites de tamanho — propósito é defender contra parser que retorna
@@ -27,7 +28,7 @@ export const itemSchema = z.object({
 
 export const pontoRetiradaSchema = z.object({
   id:           z.uuid().nullable().optional(),  // PK estável: presente ao editar; ausente ao criar ponto novo
-  tipo:         z.enum(['loja', 'deposito']),
+  tipo:         z.enum(['loja', 'deposito', 'entrega']),
   empresa_nome: z.string().max(MID),
   endereco:     z.string().max(LONG).nullable().optional(),
   itens:        z.array(itemSchema).max(500, 'Mais de 500 itens — provável erro de parse'),
@@ -53,12 +54,28 @@ export const pedidoFormSchema = z.object({
   cliente_cep:      z.string().max(SHORT).nullable().optional(),
   cliente_telefone: z.string().max(SHORT).nullable().optional(),
   cliente_endereco_id: z.uuid().nullable().optional(),
-  forma_pagamento:  z.string().max(LONG).nullable().optional(),
-  parcelas:         z.string().max(SHORT).nullable().optional(),
+  forma_pagamento:  z.enum(FORMAS_PAGAMENTO).nullable().optional(),
+  parcelas:         z.number().int().min(1).max(12).nullable().optional(),
   valor_total:      z.number().nonnegative(),
   observacoes:      z.string().max(TEXT).nullable().optional(),
   storage_pdf_path: z.string().max(LONG).nullable().optional(),
   pontos_retirada:  z.array(pontoRetiradaSchema).min(1, 'Adicione ao menos 1 ponto de retirada').max(5),
+}).superRefine((val, ctx) => {
+  // Com mais de 1 ponto (ex.: modo Híbrido), cada ponto precisa ter ao menos 1 item —
+  // senão dá pra salvar um bloco (ex.: Entrega) totalmente vazio. Com 1 ponto só,
+  // não exigimos (rascunho pode ser salvo sem itens ainda).
+  const pontos = val.pontos_retirada ?? [];
+  if (pontos.length > 1) {
+    pontos.forEach((p, i) => {
+      if (!p.itens || p.itens.length === 0) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['pontos_retirada', i, 'itens'],
+          message: `O ponto "${p.tipo}" está sem itens — adicione ao menos 1 item.`,
+        });
+      }
+    });
+  }
 });
 
 export type PedidoFormInput = z.infer<typeof pedidoFormSchema>;

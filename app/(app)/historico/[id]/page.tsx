@@ -55,6 +55,12 @@ export default async function HistoricoDetail({
       ).data
     : null;
 
+  const { data: empresa } = await supabase
+    .from('empresas')
+    .select('logo_url_print')
+    .eq('id', pedido.empresa_id)
+    .maybeSingle();
+
   const pontos = (pontosRaw ?? []).map((p) => ({
     ...p,
     itens: ((p.itens ?? []) as PedidoItem[]).sort(
@@ -96,6 +102,7 @@ export default async function HistoricoDetail({
         pontos={pontos}
         logistica={logistica ?? undefined}
         vendedor={vendedor}
+        logoUrlPrint={empresa?.logo_url_print ?? null}
       />
 
       {user && (

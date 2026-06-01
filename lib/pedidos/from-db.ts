@@ -1,11 +1,14 @@
 import type { PedidoFormInput } from '@/lib/validators/pedido';
+import type { Database } from '@/lib/types/database';
+
+type FormaPagamentoDb = Database['public']['Enums']['forma_pagamento_tipo'];
 
 type PedidoRow = {
   documento_erp: string | null; data_emissao: string | null; data_entrega: string | null;
   cliente_codigo: string | null; cliente_nome: string; cliente_cnpj_cpf: string | null;
   cliente_endereco: string | null; cliente_bairro: string | null; cliente_cidade: string | null;
   cliente_uf: string | null; cliente_cep: string | null; cliente_telefone: string | null;
-  cliente_endereco_id: string | null; forma_pagamento: string | null; parcelas: string | null;
+  cliente_endereco_id: string | null; forma_pagamento: FormaPagamentoDb | null; parcelas: number | null;
   valor_total: number; observacoes: string | null; storage_pdf_path: string | null;
 };
 type ItemRow = {

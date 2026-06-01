@@ -185,12 +185,17 @@ export type Database = {
       }
       empresas: {
         Row: {
+          agente_poll_segundos: number
+          agente_situacoes_os: string
+          agente_situacoes_venda: string
+          agente_sync_os: boolean
           ativo: boolean
           cor_primaria: string | null
           created_at: string
           email_remetente: string | null
           id: string
           logo_url: string | null
+          logo_url_print: string | null
           manutencao_lembrete_dias: number
           nome: string
           notif_email_ativo: boolean
@@ -205,12 +210,17 @@ export type Database = {
           usa_os: boolean
         }
         Insert: {
+          agente_poll_segundos?: number
+          agente_situacoes_os?: string
+          agente_situacoes_venda?: string
+          agente_sync_os?: boolean
           ativo?: boolean
           cor_primaria?: string | null
           created_at?: string
           email_remetente?: string | null
           id?: string
           logo_url?: string | null
+          logo_url_print?: string | null
           manutencao_lembrete_dias?: number
           nome: string
           notif_email_ativo?: boolean
@@ -225,12 +235,17 @@ export type Database = {
           usa_os?: boolean
         }
         Update: {
+          agente_poll_segundos?: number
+          agente_situacoes_os?: string
+          agente_situacoes_venda?: string
+          agente_sync_os?: boolean
           ativo?: boolean
           cor_primaria?: string | null
           created_at?: string
           email_remetente?: string | null
           id?: string
           logo_url?: string | null
+          logo_url_print?: string | null
           manutencao_lembrete_dias?: number
           nome?: string
           notif_email_ativo?: boolean
@@ -833,7 +848,7 @@ export type Database = {
           id: string
           ordem: number
           pedido_id: string
-          tipo: Database["public"]["Enums"]["ponto_retirada_tipo"]
+          tipo: Database["public"]["Enums"]["ponto_retirada_destino"]
           updated_at: string
         }
         Insert: {
@@ -845,7 +860,7 @@ export type Database = {
           id?: string
           ordem?: number
           pedido_id: string
-          tipo?: Database["public"]["Enums"]["ponto_retirada_tipo"]
+          tipo?: Database["public"]["Enums"]["ponto_retirada_destino"]
           updated_at?: string
         }
         Update: {
@@ -857,7 +872,7 @@ export type Database = {
           id?: string
           ordem?: number
           pedido_id?: string
-          tipo?: Database["public"]["Enums"]["ponto_retirada_tipo"]
+          tipo?: Database["public"]["Enums"]["ponto_retirada_destino"]
           updated_at?: string
         }
         Relationships: [
@@ -891,7 +906,9 @@ export type Database = {
           documento_erp: string | null
           empresa_id: string
           field_updated_at: Json
-          forma_pagamento: string | null
+          forma_pagamento:
+            | Database["public"]["Enums"]["forma_pagamento_tipo"]
+            | null
           id: string
           nf_chave: string | null
           nf_emitida_em: string | null
@@ -899,7 +916,7 @@ export type Database = {
           nf_valor: number | null
           numero_mapa: number
           observacoes: string | null
-          parcelas: string | null
+          parcelas: number | null
           status: Database["public"]["Enums"]["pedido_status"]
           storage_pdf_path: string | null
           updated_at: string
@@ -927,7 +944,9 @@ export type Database = {
           documento_erp?: string | null
           empresa_id?: string
           field_updated_at?: Json
-          forma_pagamento?: string | null
+          forma_pagamento?:
+            | Database["public"]["Enums"]["forma_pagamento_tipo"]
+            | null
           id?: string
           nf_chave?: string | null
           nf_emitida_em?: string | null
@@ -935,7 +954,7 @@ export type Database = {
           nf_valor?: number | null
           numero_mapa?: number
           observacoes?: string | null
-          parcelas?: string | null
+          parcelas?: number | null
           status?: Database["public"]["Enums"]["pedido_status"]
           storage_pdf_path?: string | null
           updated_at?: string
@@ -963,7 +982,9 @@ export type Database = {
           documento_erp?: string | null
           empresa_id?: string
           field_updated_at?: Json
-          forma_pagamento?: string | null
+          forma_pagamento?:
+            | Database["public"]["Enums"]["forma_pagamento_tipo"]
+            | null
           id?: string
           nf_chave?: string | null
           nf_emitida_em?: string | null
@@ -971,7 +992,7 @@ export type Database = {
           nf_valor?: number | null
           numero_mapa?: number
           observacoes?: string | null
-          parcelas?: string | null
+          parcelas?: number | null
           status?: Database["public"]["Enums"]["pedido_status"]
           storage_pdf_path?: string | null
           updated_at?: string
@@ -1054,6 +1075,72 @@ export type Database = {
           },
         ]
       }
+      provision_redeem_attempts: {
+        Row: {
+          at: string
+          id: number
+          ip: string
+        }
+        Insert: {
+          at?: string
+          id?: number
+          ip: string
+        }
+        Update: {
+          at?: string
+          id?: number
+          ip?: string
+        }
+        Relationships: []
+      }
+      provisioning_codes: {
+        Row: {
+          code_hash: string
+          created_at: string
+          created_by: string | null
+          empresa_id: string
+          expires_at: string
+          id: string
+          used_at: string | null
+          used_dispositivo_id: string | null
+        }
+        Insert: {
+          code_hash: string
+          created_at?: string
+          created_by?: string | null
+          empresa_id: string
+          expires_at: string
+          id?: string
+          used_at?: string | null
+          used_dispositivo_id?: string | null
+        }
+        Update: {
+          code_hash?: string
+          created_at?: string
+          created_by?: string | null
+          empresa_id?: string
+          expires_at?: string
+          id?: string
+          used_at?: string | null
+          used_dispositivo_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provisioning_codes_empresa_id_fkey"
+            columns: ["empresa_id"]
+            isOneToOne: false
+            referencedRelation: "empresas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "provisioning_codes_used_dispositivo_id_fkey"
+            columns: ["used_dispositivo_id"]
+            isOneToOne: false
+            referencedRelation: "dispositivos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -1065,6 +1152,18 @@ export type Database = {
         Returns: Database["public"]["Enums"]["user_role"]
       }
       is_platform_admin: { Args: never; Returns: boolean }
+      provision_note_attempt: { Args: { p_ip: string }; Returns: number }
+      redeem_provisioning_code: {
+        Args: {
+          p_code_hash: string
+          p_dispositivo_nome: string
+          p_token_hash: string
+        }
+        Returns: {
+          empresa_id: string
+          empresa_nome: string
+        }[]
+      }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
       sync_auth_users: {
@@ -1082,6 +1181,7 @@ export type Database = {
       unaccent: { Args: { "": string }; Returns: string }
     }
     Enums: {
+      forma_pagamento_tipo: "credito" | "pix" | "debito" | "dinheiro" | "boleto"
       pedido_status:
         | "rascunho"
         | "pendente"
@@ -1089,6 +1189,7 @@ export type Database = {
         | "finalizado"
         | "cancelado"
         | "parcialmente_entregue"
+      ponto_retirada_destino: "loja" | "deposito" | "entrega"
       ponto_retirada_tipo: "loja" | "deposito"
       user_role: "admin" | "vendedor" | "logistica"
     }
@@ -1218,6 +1319,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      forma_pagamento_tipo: ["credito", "pix", "debito", "dinheiro", "boleto"],
       pedido_status: [
         "rascunho",
         "pendente",
@@ -1226,6 +1328,7 @@ export const Constants = {
         "cancelado",
         "parcialmente_entregue",
       ],
+      ponto_retirada_destino: ["loja", "deposito", "entrega"],
       ponto_retirada_tipo: ["loja", "deposito"],
       user_role: ["admin", "vendedor", "logistica"],
     },

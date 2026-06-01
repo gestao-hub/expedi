@@ -2,12 +2,20 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { AppLogo } from '@/components/app-logo';
 import { StatusBadge } from '@/components/status-badge';
+import { rotuloFormaPagamento } from '@/lib/parser/forma-pagamento';
+import { rotuloEntrega } from '@/lib/pedidos/entrega';
 import type {
   Pedido,
   PedidoLogistica,
   PontoRetirada,
   PedidoItem,
 } from '@/lib/types';
+
+const ROTULO_PONTO: Record<string, string> = {
+  loja: 'Loja',
+  deposito: 'Depósito',
+  entrega: 'Entrega',
+};
 
 export type PontoComItens = PontoRetirada & { itens: PedidoItem[] };
 
@@ -16,12 +24,14 @@ export function MapaCarregamento({
   pontos,
   logistica,
   vendedor,
+  logoUrlPrint,
   mode = 'leitura',
 }: {
   pedido: Pedido;
   pontos: PontoComItens[];
   logistica?: PedidoLogistica | null;
   vendedor?: { full_name: string | null; email: string | null } | null;
+  logoUrlPrint?: string | null;
   mode?: 'leitura' | 'impressao';
 }) {
   const fmtDate = (d: string | null) =>
@@ -46,15 +56,20 @@ export function MapaCarregamento({
     <div
       className={
         isPrint
-          ? 'bg-white text-black text-[11pt] mx-auto max-w-[210mm]'
+          ? 'bg-white text-black text-[10pt] mx-auto max-w-[210mm]'
           : 'bg-white text-foreground border rounded-lg overflow-hidden'
       }
     >
       {/* Header */}
-      <header className="border-b border-black/20 px-6 py-4 flex items-center justify-between gap-6">
-        <AppLogo variant="dark" size={56} />
+      <header className="border-b border-black/20 px-4 py-2 flex items-center justify-between gap-4">
+        {logoUrlPrint ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={logoUrlPrint} alt="" className="h-11 w-auto object-contain" />
+        ) : (
+          <AppLogo variant="dark" size={44} />
+        )}
         <div className="text-right">
-          <h1 className="text-lg font-bold tracking-tight">Mapa de Carregamento</h1>
+          <h1 className="text-base font-bold tracking-tight">Mapa de Carregamento</h1>
           <p className="text-xs text-muted-foreground">
             Mapa Nº <span className="font-mono font-semibold">#{pedido.numero_mapa}</span>
             {pedido.documento_erp && (
@@ -62,6 +77,12 @@ export function MapaCarregamento({
                 {' '}· ERP <span className="font-mono">{pedido.documento_erp}</span>
               </>
             )}
+          </p>
+          <p className="mt-0.5 text-sm font-bold uppercase tracking-wide text-franzoni-navy">
+            Entregar:{' '}
+            <span className="text-brand-700">
+              {rotuloEntrega(pedido.data_entrega, pedido.data_entrega_inicio, new Date())}
+            </span>
           </p>
           {!isPrint && <div className="mt-2"><StatusBadge status={pedido.status} /></div>}
         </div>
@@ -105,7 +126,7 @@ export function MapaCarregamento({
           <KV label="Tel"     value={pedido.cliente_telefone} className="col-span-2" />
           <KV
             label="Pagamento"
-            value={`${pedido.forma_pagamento ?? '—'}${pedido.parcelas ? ` · ${pedido.parcelas}` : ''}`}
+            value={rotuloFormaPagamento(pedido.forma_pagamento, pedido.parcelas)}
             className="col-span-2"
           />
         </Grid>
@@ -115,17 +136,24 @@ export function MapaCarregamento({
       {pontos.map((ponto, idx) => (
         <Section
           key={ponto.id}
-          title={`${ponto.tipo === 'loja' ? 'Loja' : 'Depósito'} ${pontos.length > 1 ? `· ${idx + 1}/${pontos.length}` : ''}`}
+          title={`${ROTULO_PONTO[ponto.tipo] ?? 'Loja'} ${pontos.length > 1 ? `· ${idx + 1}/${pontos.length}` : ''}`}
           headerExtra={ponto.empresa_nome}
           className={isPrint && idx > 0 ? 'print-break-before' : ''}
         >
-          {ponto.endereco && (
-            <p className="text-xs text-muted-foreground mb-2">{ponto.endereco}</p>
+          {ponto.tipo === 'entrega' ? (
+            <p className="text-xs mb-2">
+              <span className="font-semibold uppercase tracking-wider text-brand-700">Enviar para:</span>{' '}
+              {ponto.endereco || pedido.cliente_endereco || '—'}
+            </p>
+          ) : (
+            ponto.endereco && (
+              <p className="text-xs text-muted-foreground mb-2">{ponto.endereco}</p>
+            )
           )}
           {ponto.itens.length === 0 ? (
             <p className="text-sm italic text-muted-foreground">Sem itens.</p>
           ) : (
-            <table className="w-full text-xs border-collapse table-fixed">
+            <table className="w-full text-[10px] border-collapse table-fixed">
               <colgroup>
                 <col style={{ width: '60px' }} />
                 <col />
@@ -138,14 +166,14 @@ export function MapaCarregamento({
               </colgroup>
               <thead>
                 <tr className="bg-muted/40 text-left">
-                  <th className="px-2 py-1 border">Código</th>
-                  <th className="px-2 py-1 border">Descrição</th>
-                  <th className="px-2 py-1 border text-right">Qtd</th>
-                  <th className="px-2 py-1 border">Un</th>
-                  <th className="px-2 py-1 border text-right">Entreg.</th>
-                  <th className="px-2 py-1 border text-right">Restante</th>
-                  <th className="px-2 py-1 border text-right">Unitário</th>
-                  <th className="px-2 py-1 border text-right">Total</th>
+                  <th className="px-1.5 py-0.5 border">Código</th>
+                  <th className="px-1.5 py-0.5 border">Descrição</th>
+                  <th className="px-1.5 py-0.5 border text-right">Qtd</th>
+                  <th className="px-1.5 py-0.5 border">Un</th>
+                  <th className="px-1.5 py-0.5 border text-right">Entreg.</th>
+                  <th className="px-1.5 py-0.5 border text-right">Restante</th>
+                  <th className="px-1.5 py-0.5 border text-right">Unitário</th>
+                  <th className="px-1.5 py-0.5 border text-right">Total</th>
                 </tr>
               </thead>
               <tbody>
@@ -157,8 +185,8 @@ export function MapaCarregamento({
                   const restante = Math.max(0, qt - qe);
                   return (
                   <tr key={it.id} className="even:bg-muted/10 align-top">
-                    <td className="px-2 py-1 border font-mono truncate" title={it.codigo}>{it.codigo}</td>
-                    <td className="px-2 py-1 border wrap-break-word">
+                    <td className="px-1.5 py-0.5 border font-mono truncate" title={it.codigo}>{it.codigo}</td>
+                    <td className="px-1.5 py-0.5 border wrap-break-word">
                       {it.descricao}
                       {!isPrint && (it as PedidoItem & { saldo_estoque?: number | null }).saldo_estoque != null && (
                         <span
@@ -173,16 +201,16 @@ export function MapaCarregamento({
                         </span>
                       )}
                     </td>
-                    <td className="px-2 py-1 border text-right font-mono">{qt}</td>
-                    <td className="px-2 py-1 border">{it.unidade}</td>
-                    <td className="px-2 py-1 border text-right font-mono">{qe > 0 ? qe : '—'}</td>
-                    <td className={`px-2 py-1 border text-right font-mono ${restante > 0 && qe > 0 ? 'font-bold text-amber-700' : ''}`}>
+                    <td className="px-1.5 py-0.5 border text-right font-mono">{qt}</td>
+                    <td className="px-1.5 py-0.5 border">{it.unidade}</td>
+                    <td className="px-1.5 py-0.5 border text-right font-mono">{qe > 0 ? qe : '—'}</td>
+                    <td className={`px-1.5 py-0.5 border text-right font-mono ${restante > 0 && qe > 0 ? 'font-bold text-amber-700' : ''}`}>
                       {restante}
                     </td>
-                    <td className="px-2 py-1 border text-right font-mono">
+                    <td className="px-1.5 py-0.5 border text-right font-mono">
                       {fmtMoney(Number(it.preco_unitario))}
                     </td>
-                    <td className="px-2 py-1 border text-right font-mono">
+                    <td className="px-1.5 py-0.5 border text-right font-mono">
                       {fmtMoney(Number(it.total))}
                     </td>
                   </tr>
@@ -231,8 +259,8 @@ export function MapaCarregamento({
       )}
 
       {/* Conferente footer */}
-      <footer className="px-6 py-6 text-xs">
-        <div className="flex justify-between gap-12 mt-4">
+      <footer className="px-4 py-4 text-[10px]">
+        <div className="flex justify-between gap-12 mt-3">
           <div className="flex-1 border-t border-black/30 pt-1 text-center text-muted-foreground">
             Conferente
           </div>
@@ -262,11 +290,11 @@ function Section({
   className?: string;
 }) {
   return (
-    <section className={`border-b border-black/15 px-6 py-3 print-avoid-break ${className ?? ''}`}>
-      <div className="flex items-baseline justify-between mb-2">
-        <h3 className="text-xs font-bold uppercase tracking-widest text-franzoni-navy">{title}</h3>
+    <section className={`border-b border-black/15 px-4 py-2 print-avoid-break ${className ?? ''}`}>
+      <div className="flex items-baseline justify-between mb-1">
+        <h3 className="text-[10px] font-bold uppercase tracking-widest text-franzoni-navy">{title}</h3>
         {headerExtra && (
-          <span className="text-sm font-medium text-foreground">{headerExtra}</span>
+          <span className="text-xs font-medium text-foreground">{headerExtra}</span>
         )}
       </div>
       {children}
@@ -276,7 +304,7 @@ function Section({
 
 function Grid({ cols, children }: { cols: 3 | 4 | 6; children: React.ReactNode }) {
   const cls = cols === 3 ? 'grid-cols-3' : cols === 4 ? 'grid-cols-2 md:grid-cols-4' : 'grid-cols-3 md:grid-cols-6';
-  return <div className={`grid ${cls} gap-x-4 gap-y-2`}>{children}</div>;
+  return <div className={`grid ${cls} gap-x-4 gap-y-1`}>{children}</div>;
 }
 
 function KV({
@@ -290,8 +318,8 @@ function KV({
 }) {
   return (
     <div className={className}>
-      <div className="text-[10px] uppercase tracking-wider text-muted-foreground">{label}</div>
-      <div className="kv-value text-sm font-medium">{value == null || value === '' ? '—' : value}</div>
+      <div className="text-[9px] uppercase tracking-wider text-muted-foreground">{label}</div>
+      <div className="kv-value text-xs font-medium">{value == null || value === '' ? '—' : value}</div>
     </div>
   );
 }
