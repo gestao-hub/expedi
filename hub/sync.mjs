@@ -25,7 +25,8 @@
  */
 
 import { execFile } from 'node:child_process';
-import { writeFile, unlink } from 'node:fs/promises';
+import { open, unlink } from 'node:fs/promises';
+import { randomBytes } from 'node:crypto';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { promisify } from 'node:util';
@@ -377,15 +378,23 @@ async function psqlSyncWrite(cfg, sql) {
   const body = `begin; set local exped.sync = 'on'; ${sql}; commit;`;
   // Escreve em arquivo temp UTF-8 e usa -f: elimina interferência de codepage
   // do Windows quando caracteres não-ASCII são passados via argumento -c.
-  const tmpFile = join(tmpdir(), `exped-sync-${Date.now()}-${Math.random().toString(36).slice(2)}.sql`);
+  // O SQL pode conter dados sensíveis (ex.: encrypted_password de auth.users), então:
+  // nome aleatório imprevisível (randomBytes, não Math.random) + permissão 0600 +
+  // 'wx' (falha se já existir — evita race/symlink em arquivo previsível).
+  const tmpFile = join(tmpdir(), `exped-sync-${randomBytes(12).toString('hex')}.sql`);
+  let fh;
   try {
-    await writeFile(tmpFile, body, 'utf8');
+    fh = await open(tmpFile, 'wx', 0o600);
+    await fh.writeFile(body, 'utf8');
+    await fh.close();
+    fh = undefined;
     await execFileAsync(
       'psql',
       [...psqlArgs(cfg), '-v', 'ON_ERROR_STOP=1', '-f', tmpFile],
       { env: PSQL_ENV, maxBuffer: 1024 * 1024 * 32 },
     );
   } finally {
+    if (fh) await fh.close().catch(() => {});
     await unlink(tmpFile).catch(() => {});
   }
 }
