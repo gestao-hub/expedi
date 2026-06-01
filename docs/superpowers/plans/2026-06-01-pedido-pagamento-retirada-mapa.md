@@ -341,6 +341,78 @@ describe('pedidoFormSchema pagamento/retirada', () => {
 
 ---
 
+### Task 5.3: Data de entrega em destaque (pedido do cliente)
+
+**Files:** Create `lib/pedidos/entrega.ts` + `lib/pedidos/__tests__/entrega.test.ts`; Modify `components/mapa-carregamento.tsx`
+
+- [ ] **Step 1: Teste que falha**
+```ts
+// lib/pedidos/__tests__/entrega.test.ts
+import { describe, it, expect } from 'vitest';
+import { rotuloEntrega } from '../entrega';
+const hoje = new Date('2026-06-01T12:00:00');
+describe('rotuloEntrega', () => {
+  it('hoje / amanhã / atrasado', () => {
+    expect(rotuloEntrega('2026-06-01', null, hoje)).toBe('01/06 (hoje)');
+    expect(rotuloEntrega('2026-06-02', null, hoje)).toBe('02/06 (amanhã)');
+    expect(rotuloEntrega('2026-05-30', null, hoje)).toBe('30/05 (atrasado)');
+  });
+  it('data distante = só a data, sem dica', () => {
+    expect(rotuloEntrega('2026-06-20', null, hoje)).toBe('20/06');
+  });
+  it('janela início–fim', () => {
+    expect(rotuloEntrega('2026-06-02', '2026-06-01', hoje)).toBe('01/06 – 02/06 (amanhã)');
+  });
+  it('sem data', () => {
+    expect(rotuloEntrega(null, null, hoje)).toBe('A definir');
+  });
+});
+```
+
+- [ ] **Step 2: Rodar e ver falhar** — `npx vitest run lib/pedidos/__tests__/entrega.test.ts`.
+
+- [ ] **Step 3: Implementar**
+```ts
+// lib/pedidos/entrega.ts
+import { format, differenceInCalendarDays, parseISO } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+
+/** Rótulo destacado da entrega: "02/06 (amanhã)", "01/06 – 02/06 (amanhã)", "20/06", "A definir".
+ *  `hoje` é injetado p/ testabilidade (sem Date.now interno). */
+export function rotuloEntrega(
+  dataEntrega: string | null | undefined,
+  dataInicio: string | null | undefined,
+  hoje: Date,
+): string {
+  if (!dataEntrega) return 'A definir';
+  const fim = parseISO(dataEntrega);
+  const base = dataInicio && dataInicio !== dataEntrega
+    ? `${format(parseISO(dataInicio), 'dd/MM')} – ${format(fim, 'dd/MM')}`
+    : format(fim, 'dd/MM');
+  const diff = differenceInCalendarDays(fim, hoje);
+  let hint = '';
+  if (diff < 0) hint = 'atrasado';
+  else if (diff === 0) hint = 'hoje';
+  else if (diff === 1) hint = 'amanhã';
+  else if (diff <= 6) hint = format(fim, 'EEEE', { locale: ptBR });
+  return hint ? `${base} (${hint})` : base;
+}
+```
+
+- [ ] **Step 4: Rodar e ver passar.**
+
+- [ ] **Step 5: Destacar no mapa** (`components/mapa-carregamento.tsx`): no cabeçalho (perto do `Mapa Nº`),
+  adicionar um bloco destacado **"ENTREGAR: {rotuloEntrega(pedido.data_entrega, pedido.data_entrega_inicio, new Date())}"**
+  (fonte maior/negrito, cor de destaque). Manter o KV "Emissão" como data da venda. Import de `@/lib/pedidos/entrega`.
+  (No componente de print, `new Date()` é aceitável — não é workflow.)
+
+- [ ] **Step 6: Commit** `feat(mapa): destaca data de entrega (hoje/amanha) — pedido do cliente`.
+
+> **Verificação de DADO (Windows, não-bloqueante):** confirmar que a ingestão em uso é a do **agente SQL**
+> (HiperRepository já lê `data_previsao_entrega_inicial/_final` → `data_entrega_inicio/data_entrega`); pedidos
+> antigos vindos do PDF ficaram com `data_entrega = data_emissao` porque o PDF não traz a previsão. Re-ingerir
+> esses pedidos pelo agente, se necessário. O servidor não inventa data (segue `?? null`).
+
 ## FASE 6 — Asset + dado da Franzoni
 
 ### Task 6.1: logo de impressão da Franzoni
@@ -358,6 +430,7 @@ describe('pedidoFormSchema pagamento/retirada', () => {
 - §4.2 retirada/híbrido (destino entrega, form modo, mapa rótulo) → Tasks 1.2, 2.2, 3.2, 5.1 ✓
 - §4.3 logo PDF (coluna, componente, asset Franzoni) → Tasks 1.3, 5.1, 6.1 ✓
 - §4.4 mapa compacto → Task 5.2 ✓
+- §4.5 data de entrega em destaque (helper rotuloEntrega + mapa + verificação ingestão) → Task 5.3 ✓
 - §5 sync (allowlist dinâmica, hub aplica migração) → notas nas migrations; nada a codar ✓
 - §8 testes → Tasks 2.1/2.2 (vitest); migrations validadas; visual manual ✓
 

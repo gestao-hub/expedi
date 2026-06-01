@@ -14,6 +14,10 @@ Quatro mudanças coesas no fluxo de pedido e no mapa de carregamento (PDF):
 2. **Mapa compacto** — as mesmas informações devem ocupar ~metade da página (1 pedido por folha, mais denso).
 3. **Pagamento em dropdown** — sem texto livre: forma de pagamento e número de parcelas viram dropdowns.
 4. **Ponto de retirada com híbrido** — Loja / Depósito / Híbrido (parte o cliente retira, parte é enviada/entregue).
+5. **Data de entrega visível no mapa** (pedido do cliente Franzoni) — o mapa deve mostrar claramente **a data de
+   ENTREGA** ("pra quando entregar": hoje/amanhã/data), não só a data da venda. Hoje o campo "Entrega" existe mas
+   é discreto e, em pedidos vindos do PDF, `data_entrega` ficou igual à `data_emissao` (a previsão de entrega do
+   Hiper não vem no PDF). Capturar a previsão real e destacá-la.
 
 ## 2. Estado atual (verificado)
 
@@ -91,6 +95,17 @@ Quatro mudanças coesas no fluxo de pedido e no mapa de carregamento (PDF):
   margens; manter legibilidade (mín. 9–10px no print). Ajustar o CSS de print pra ocupar ~meia página com
   1 pedido. Sem mudar paginação (pedido grande transborda normalmente).
 
+### 4.5 Data de entrega em destaque no mapa
+- **Exibição (mapa):** elevar a data de entrega de um KV discreto para um item **destacado** no cabeçalho
+  do mapa (ex.: "ENTREGAR: 02/06 (amanhã)"), com dica relativa **Hoje / Amanhã / dia-da-semana** calculada
+  de `data_entrega` (e a janela `data_entrega_inicio – data_entrega` quando houver). Função pura
+  `rotuloEntrega(data_entrega, data_entrega_inicio, hoje)` testável.
+- **Dado (ingestão):** o agente SQL já mapeia `data_previsao_entrega_inicial/_final → data_entrega_inicio/
+  data_entrega` (HiperRepository/PayloadBuilder — verificado). O gap é que pedidos ingeridos pelo **PDF**
+  ficaram com `data_entrega = data_emissao` (o PDF não traz previsão). Ação: confirmar no Windows que a
+  ingestão em uso é a do **agente SQL** (que tem a previsão) e re-ingerir/ajustar pedidos antigos se
+  necessário; não inventar data no servidor (segue `?? null`). Sem mudança de schema (campos já existem).
+
 ## 5. Impacto no sync
 - `pedidos`: colunas `forma_pagamento`/`parcelas` mudam de TIPO mas mantêm o **nome** → continuam na allowlist
   do `sync_push_upsert` (verificar que estão lá). O merge campo-a-campo segue igual.
@@ -126,6 +141,8 @@ escolha de transportadora; mudar o parser do Hiper além do mapa de pagamento; i
 4. **Ingestão:** aplicar os helpers de pagamento no agente/parser.
 5. **Mapa:** logo do cliente (logo_url_print) + rótulos Loja/Depósito/Entrega + densificação (meia página).
 6. **Asset/dado Franzoni:** `public/clientes/franzoni-print.png` + `logo_url_print` na nuvem.
+7. **Data de entrega em destaque:** `rotuloEntrega` (helper + teste) + destaque no cabeçalho do mapa; verificar
+   ingestão da previsão no Windows.
 
 Referências: `components/mapa-carregamento.tsx`, `lib/validators/pedido.ts`,
 `supabase/migrations/20260518000003_pedidos.sql`, `supabase/migrations/20260518000001_extensions_enums.sql`,
