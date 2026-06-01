@@ -1,4 +1,5 @@
 import type { PedidoParsed } from './hiper-erp';
+import { mapFormaPagamento, parseParcelas } from './forma-pagamento';
 import type { PedidoFormInput } from '@/lib/validators/pedido';
 
 /** Converte a saída do parser para os defaults do PedidoForm. */
@@ -19,8 +20,8 @@ export function parsedToFormInput(
     cliente_uf:       p.cliente.uf ?? null,
     cliente_cep:      p.cliente.cep ?? null,
     cliente_telefone: p.cliente.telefone ?? null,
-    forma_pagamento:  p.forma_pagamento ?? null,
-    parcelas:         p.parcelas ?? null,
+    forma_pagamento:  mapFormaPagamento(p.forma_pagamento),
+    parcelas:         parseParcelas(p.parcelas),
     valor_total:      p.valor_total ?? 0,
     observacoes:      p.observacoes ?? null,
     storage_pdf_path: storagePath,
