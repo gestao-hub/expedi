@@ -1,4 +1,5 @@
 import type { createAdminClient } from '@/lib/supabase/admin';
+import type { Json } from '@/lib/types/database';
 import type { SyncDb, Row } from './engine';
 import { hasDirectEmpresaId, type SyncTable } from './tables';
 
@@ -13,10 +14,12 @@ type Admin = ReturnType<typeof createAdminClient>;
  *    em memória (cadeia até o ancestral com empresa_id).
  *  - findCanonical/parentBelongsToEmpresa: idem.
  *
- * Escrita do merge sem o trigger sobrescrever: via RPC `sync_push_upsert` que faz
- * `set local session_replication_role = replica` na MESMA transação do upsert
- * (ver supabase/migrations/20260601000002_sync_rpc.sql). `setSyncReplica` aqui é
- * no-op porque o toggle é por-transação dentro do RPC (REST/pool não mantém sessão).
+ * Escrita do merge sem o trigger recarimbar: via RPC `sync_push_upsert` que faz
+ * `set local exped.sync = 'on'` na MESMA transação do upsert (GUC custom, não exige
+ * superuser; o trigger stamp_sync pula o recarimbo quando essa flag está 'on' —
+ * ver supabase/migrations/20260601000002_sync_rpc.sql e 20260601000003_sync_guc_trigger.sql).
+ * `setSyncReplica` aqui é no-op porque o toggle é por-transação dentro do RPC
+ * (REST/pool não mantém sessão entre requests).
  */
 
 // Resolve a lista de ids da empresa pra cada "nível pai" — usado pra escopar filhas.
@@ -85,10 +88,7 @@ export function makeSupabaseSyncDb(supabase: Admin): SyncDb {
     },
 
     async parentBelongsToEmpresa(parentTable, parentId, empresaId) {
-      // RPCs de sync ainda não estão no Database gerado (migração não aplicada na nuvem
-      // por este sub-projeto). Cast pontual até regenerar lib/types/database.ts.
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase as any).rpc('sync_parent_in_empresa', {
+      const { data, error } = await supabase.rpc('sync_parent_in_empresa', {
         p_table: parentTable,
         p_id: parentId as string,
         p_empresa: empresaId,
@@ -98,18 +98,18 @@ export function makeSupabaseSyncDb(supabase: Admin): SyncDb {
     },
 
     async upsertRaw(table, row) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const { data, error } = await (supabase as any).rpc('sync_push_upsert', {
+      const { data, error } = await supabase.rpc('sync_push_upsert', {
         p_table: table,
-        p_row: row as Record<string, unknown>,
+        p_row: row as Json,
       });
       if (error) throw error;
       return data as Row;
     },
 
     async setSyncReplica() {
-      // No-op: o toggle do trigger é feito por-transação DENTRO do RPC sync_push_upsert.
-      // (PostgREST usa pool de conexões; um SET fora da transação não persistiria.)
+      // No-op: o toggle do trigger (GUC exped.sync) é feito por-transação DENTRO do
+      // RPC sync_push_upsert. (PostgREST usa pool de conexões; um SET fora da
+      // transação do upsert não persistiria.)
     },
   };
 }

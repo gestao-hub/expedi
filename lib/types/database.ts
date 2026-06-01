@@ -1061,6 +1061,14 @@ export type Database = {
       is_platform_admin: { Args: never; Returns: boolean }
       show_limit: { Args: never; Returns: number }
       show_trgm: { Args: { "": string }; Returns: string[] }
+      sync_parent_in_empresa: {
+        Args: { p_empresa: string; p_id: string; p_table: string }
+        Returns: boolean
+      }
+      sync_push_upsert: {
+        Args: { p_row: Json; p_table: string }
+        Returns: Json
+      }
       unaccent: { Args: { "": string }; Returns: string }
     }
     Enums: {
@@ -1213,3 +1221,4 @@ export const Constants = {
     },
   },
 } as const
+

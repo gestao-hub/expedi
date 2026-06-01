@@ -1,17 +1,20 @@
 -- 20260601000002_sync_rpc.sql — RPCs de apoio à API de sync (push escopado por empresa).
 --
--- POR QUE RPC e não `set session_replication_role` direto via REST:
---   O supabase-js fala com PostgREST sobre um POOL de conexões. Um `set
---   session_replication_role = replica` emitido numa request NÃO persiste de forma
---   confiável pra próxima request (conexão diferente). Pra desabilitar o trigger
---   `trg_stamp_sync` EXATAMENTE em volta da gravação do resultado do merge, o toggle
---   precisa estar na MESMA transação do upsert — daí encapsular tudo num RPC com
---   `SET LOCAL session_replication_role = replica` (escopo da transação, auto-revert
---   no commit/rollback). É o "session_replication_role" do plano, feito de forma segura.
+-- POR QUE RPC e não toggle direto via REST:
+--   O supabase-js fala com PostgREST sobre um POOL de conexões. Um SET emitido numa
+--   request NÃO persiste de forma confiável pra próxima request (conexão diferente).
+--   Pra fazer o trigger `trg_stamp_sync` pular o recarimbo EXATAMENTE em volta da
+--   gravação do resultado do merge, o toggle precisa estar na MESMA transação do
+--   upsert — daí encapsular tudo num RPC com `SET LOCAL exped.sync = 'on'` (escopo da
+--   transação, auto-revert no commit/rollback).
 --
--- Idempotente (create or replace). SECURITY DEFINER (service_role já ignora RLS, mas
--- precisamos do privilégio de setar session_replication_role — só superuser/replication;
--- no Supabase o owner das functions tem o bastante via SET LOCAL em definer).
+-- POR QUE GUC custom (exped.sync) e não session_replication_role:
+--   Desligar triggers via session_replication_role exige superuser/replication —
+--   indisponível no Supabase gerenciado. Setar um GUC custom (`set local exped.sync`)
+--   NÃO exige superuser. O trigger stamp_sync (migration 0003) lê esse GUC e pula o
+--   recarimbo quando = 'on', preservando field_updated_at/updated_at do merge.
+--
+-- Idempotente (create or replace). SECURITY DEFINER (service_role já ignora RLS).
 
 -- Upsert "cru": grava a linha jsonb tal-e-qual (inclusive field_updated_at/updated_at
 -- mergeados), com o trigger de stamp DESLIGADO. Retorna a linha canônica resultante.
@@ -35,8 +38,9 @@ begin
     raise exception 'sync_push_upsert: tabela não permitida %', p_table;
   end if;
 
-  -- Desliga triggers (inclui trg_stamp_sync) só nesta transação.
-  set local session_replication_role = replica;
+  -- Sinaliza ao trigger trg_stamp_sync que NÃO deve recarimbar (preserva os carimbos
+  -- do merge). GUC custom, escopo da transação — não exige superuser.
+  set local exped.sync = 'on';
 
   select string_agg(quote_ident(key), ', '),
          string_agg(format('($1->>%L)', key) || '::text', ', ')
