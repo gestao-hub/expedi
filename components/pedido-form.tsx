@@ -2,7 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import * as React from 'react';
-import { useTransition } from 'react';
+import { useTransition, useState } from 'react';
 import { Controller, useFieldArray, useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Plus, Trash2, Loader2 } from 'lucide-react';
@@ -57,6 +57,9 @@ export function PedidoForm({
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
+  // Tabs controlado: ao reduzir o nº de pontos (Híbrido→Loja), a aba ativa pode
+  // apontar para um índice que deixou de existir e o painel sairia em branco.
+  const [abaPonto, setAbaPonto] = useState('0');
 
   const form = useForm<PedidoFormInput>({
     resolver: zodResolver(pedidoFormSchema),
@@ -110,6 +113,9 @@ export function PedidoForm({
   }
 
   function aplicarModo(novo: 'loja' | 'deposito' | 'hibrido', tipoRetirada?: 'loja' | 'deposito') {
+    // Reset da aba ativa: tanto loja/deposito (1 ponto) quanto híbrido (reconstrói
+    // os 2 pontos) garantem que índice 0 existe — evita painel em branco.
+    setAbaPonto('0');
     const atuais = getValues('pontos_retirada') ?? [];
     if (novo === 'loja' || novo === 'deposito') {
       // 1 ponto único com TODOS os itens consolidados; remove extras.
@@ -333,7 +339,7 @@ export function PedidoForm({
           </div>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="0" className="w-full">
+          <Tabs value={abaPonto} onValueChange={setAbaPonto} className="w-full">
             <TabsList>
               {pontos.map((p, i) => (
                 <TabsTrigger key={p._rhfId} value={String(i)} className="capitalize">
@@ -351,16 +357,22 @@ export function PedidoForm({
                   })}
                 />
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <Field label="Tipo">
-                    <select
-                      {...register(`pontos_retirada.${i}.tipo`)}
-                      className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
-                    >
-                      <option value="loja">Loja</option>
-                      <option value="deposito">Depósito</option>
-                      <option value="entrega">Entrega</option>
-                    </select>
-                  </Field>
+                  {/* No modo híbrido o tipo por ponto é editável (sub-seletor loja/depósito
+                      + ponto de entrega). Fora dele há 1 ponto só e o "Modo de retirada"
+                      já define o tipo — trocar aqui para "entrega" criaria um híbrido
+                      incoerente sem o par retirada+entrega, então ocultamos o select. */}
+                  {modoRetirada === 'hibrido' && (
+                    <Field label="Tipo">
+                      <select
+                        {...register(`pontos_retirada.${i}.tipo`)}
+                        className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-sm"
+                      >
+                        <option value="loja">Loja</option>
+                        <option value="deposito">Depósito</option>
+                        <option value="entrega">Entrega</option>
+                      </select>
+                    </Field>
+                  )}
                   <Field label="Empresa" className="md:col-span-2">
                     <Input {...register(`pontos_retirada.${i}.empresa_nome`)} />
                   </Field>
@@ -376,7 +388,16 @@ export function PedidoForm({
                     type="button"
                     variant="ghost"
                     size="sm"
-                    onClick={() => removePonto(i)}
+                    onClick={() => {
+                      removePonto(i);
+                      // Garante que a aba ativa continue válida após a remoção
+                      // (a lista encolhe de pontos.length para pontos.length - 1).
+                      setAbaPonto((atual) =>
+                        Number(atual) >= pontos.length - 1
+                          ? String(Math.max(0, pontos.length - 2))
+                          : atual,
+                      );
+                    }}
                     className="text-destructive hover:text-destructive"
                   >
                     <Trash2 className="h-4 w-4 mr-1" /> Remover ponto
