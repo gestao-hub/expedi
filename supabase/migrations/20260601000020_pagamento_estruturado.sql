@@ -8,11 +8,11 @@ alter table public.pedidos
   alter column forma_pagamento type forma_pagamento_tipo
   using (
     case
-      when forma_pagamento ilike '%credito%' or forma_pagamento ilike '%crédito%' then 'credito'::forma_pagamento_tipo
-      when forma_pagamento ilike '%pix%'     then 'pix'::forma_pagamento_tipo
-      when forma_pagamento ilike '%debito%'  or forma_pagamento ilike '%débito%'  then 'debito'::forma_pagamento_tipo
-      when forma_pagamento ilike '%dinheiro%' or forma_pagamento ilike '%espécie%' or forma_pagamento ilike '%especie%' then 'dinheiro'::forma_pagamento_tipo
-      when forma_pagamento ilike '%boleto%'  then 'boleto'::forma_pagamento_tipo
+      when forma_pagamento::text ilike '%credito%' or forma_pagamento::text ilike '%crédito%' then 'credito'::forma_pagamento_tipo
+      when forma_pagamento::text ilike '%pix%'     then 'pix'::forma_pagamento_tipo
+      when forma_pagamento::text ilike '%debito%'  or forma_pagamento::text ilike '%débito%'  then 'debito'::forma_pagamento_tipo
+      when forma_pagamento::text ilike '%dinheiro%' or forma_pagamento::text ilike '%espécie%' or forma_pagamento::text ilike '%especie%' then 'dinheiro'::forma_pagamento_tipo
+      when forma_pagamento::text ilike '%boleto%'  then 'boleto'::forma_pagamento_tipo
       else null
     end
   );
