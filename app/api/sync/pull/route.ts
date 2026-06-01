@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
     const result = await runPull(db, device.empresaId, parsed.data.cursors);
     return NextResponse.json(result, { status: 200 });
   } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
+    const msg = e instanceof Error ? e.message : JSON.stringify(e);
     console.error('[sync/pull] erro:', msg, e);
     return NextResponse.json({ error: `pull falhou: ${msg}` }, { status: 500 });
   }
