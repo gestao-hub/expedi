@@ -26,21 +26,24 @@ export async function POST(req: NextRequest) {
       args: Record<string, unknown>,
     ) => Promise<{ data: unknown; error: { message?: string } | null }>;
   };
+  // XFF confiável: a Vercel sobrescreve x-forwarded-for na edge
   const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
+
+  // Valida o payload ANTES de contar a tentativa: payloads inválidos não consomem
+  // a janela de throttle nem inflam a tabela de tentativas.
+  let body: unknown;
+  try { body = await req.json(); } catch { return NextResponse.json({ error: 'JSON inválido' }, { status: 400 }); }
+  const parsed = schema.safeParse(body);
+  if (!parsed.success) return NextResponse.json({ error: 'payload inválido' }, { status: 422 });
 
   const { data: attempts } = await supabase.rpc('provision_note_attempt', { p_ip: ip });
   if (typeof attempts === 'number' && attempts > MAX_ATTEMPTS) {
     return NextResponse.json({ error: 'muitas tentativas, tente mais tarde' }, { status: 429 });
   }
 
-  let body: unknown;
-  try { body = await req.json(); } catch { return NextResponse.json({ error: 'JSON inválido' }, { status: 400 }); }
-  const parsed = schema.safeParse(body);
-  if (!parsed.success) return NextResponse.json({ error: 'payload inválido' }, { status: 422 });
-
   const codeHash = hashCodigo(parsed.data.code);
   const { raw: deviceToken, hash: tokenHash } = gerarTokenDispositivo();
-  const nome = `Hub ${new Date().toISOString().slice(0, 10)}`;
+  const nome = `Hub ${new Date().toISOString().slice(0, 10)} ${Math.random().toString(36).slice(2, 6)}`;
 
   const { data, error } = await supabase.rpc('redeem_provisioning_code', {
     p_code_hash: codeHash, p_token_hash: tokenHash, p_dispositivo_nome: nome,

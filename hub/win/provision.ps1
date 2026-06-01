@@ -36,16 +36,22 @@ if ($DeviceToken) {
 $cfgPath = Join-Path $Root "config.json"
 $cfg = if (Test-Path $cfgPath) { Get-Content $cfgPath -Raw | ConvertFrom-Json } else { [pscustomobject]@{} }
 $cfg | Add-Member -NotePropertyName cloud -NotePropertyValue ([pscustomobject]@{ apiBase=$cloud; deviceToken=$token }) -Force
-($cfg | ConvertTo-Json -Depth 8) | Set-Content -Path $cfgPath -Encoding UTF8
+# UTF-8 SEM BOM: Set-Content -Encoding UTF8 grava BOM no PS 5.1 e quebra o JSON.parse do Node/.NET
+[System.IO.File]::WriteAllText($cfgPath, ($cfg | ConvertTo-Json -Depth 8), (New-Object System.Text.UTF8Encoding $false))
 
 # 3) Escrever appsettings.json do agente (aponta pro hub LOCAL)
 $agentDir = Join-Path $env:LOCALAPPDATA "ExpedAgent"
 $appPath  = Join-Path $agentDir "appsettings.json"
 if (Test-Path $appPath) {
   $app = Get-Content $appPath -Raw | ConvertFrom-Json
-  $app.Agent.ApiBaseUrl = "http://127.0.0.1:3000"
-  $app.Agent.DeviceToken = $token
-  ($app | ConvertTo-Json -Depth 8) | Set-Content -Path $appPath -Encoding UTF8
+  if ($app.PSObject.Properties.Name -contains 'Agent' -and $app.Agent) {
+    $app.Agent.ApiBaseUrl = "http://127.0.0.1:3000"
+    $app.Agent.DeviceToken = $token
+    # UTF-8 SEM BOM (idem config.json)
+    [System.IO.File]::WriteAllText($appPath, ($app | ConvertTo-Json -Depth 8), (New-Object System.Text.UTF8Encoding $false))
+  } else {
+    Write-Warning "appsettings.json sem o nó 'Agent' — não foi possível gravar ApiBaseUrl/DeviceToken. Verifique a instalação do ExpedAgent."
+  }
 }
 if ($resp -and $resp.empresaNome) {
   Write-Host "Provisionamento concluído para a empresa: $($resp.empresaNome)"
