@@ -39,6 +39,22 @@ export default async function ImprimirLotePage({
     supabase.from('pedido_logistica').select('*').in('pedido_id', ids),
   ]);
 
+  // Logo de impressão por empresa (empresas distintas envolvidas no lote)
+  const empresaIds = Array.from(
+    new Set(
+      (pedidos ?? [])
+        .map((p) => (p as { empresa_id?: string }).empresa_id)
+        .filter((id): id is string => Boolean(id)),
+    ),
+  );
+  const { data: empresas } = empresaIds.length
+    ? await supabase.from('empresas').select('id, logo_url_print').in('id', empresaIds)
+    : { data: [] as Array<{ id: string; logo_url_print: string | null }> };
+  const logoByEmpresa = new Map<string, string | null>();
+  for (const e of (empresas ?? []) as Array<{ id: string; logo_url_print: string | null }>) {
+    logoByEmpresa.set(e.id, e.logo_url_print ?? null);
+  }
+
   // Indexa por pedido_id pra montagem rápida
   const pontosByPedido = new Map<string, PontoComItens[]>();
   for (const p of (pontosRaw ?? []) as Array<{
@@ -77,6 +93,8 @@ export default async function ImprimirLotePage({
           {ordered.map((pedido, idx) => {
             const pontos = pontosByPedido.get(pedido.id) ?? [];
             const log = logisticaByPedido.get(pedido.id);
+            const empresaId = (pedido as { empresa_id?: string }).empresa_id;
+            const logoUrlPrint = empresaId ? logoByEmpresa.get(empresaId) ?? null : null;
             return (
               <div
                 key={pedido.id}
@@ -88,6 +106,7 @@ export default async function ImprimirLotePage({
                   pontos={pontos}
                   // eslint-disable-next-line @typescript-eslint/no-explicit-any
                   logistica={(log as any) ?? undefined}
+                  logoUrlPrint={logoUrlPrint}
                   mode="impressao"
                 />
               </div>

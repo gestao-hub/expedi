@@ -32,6 +32,12 @@ export default async function ImprimirPage({
     ? (await supabase.from('profiles').select('full_name, email').eq('id', pedido.vendedor_id).single()).data
     : null;
 
+  const { data: empresa } = await supabase
+    .from('empresas')
+    .select('logo_url_print')
+    .eq('id', pedido.empresa_id)
+    .maybeSingle();
+
   const pontos = (pontosRaw ?? []).map((p) => ({
     ...p,
     itens: ((p.itens ?? []) as PedidoItem[]).sort(
@@ -48,6 +54,7 @@ export default async function ImprimirPage({
         pontos={pontos}
         logistica={logistica ?? undefined}
         vendedor={vendedor}
+        logoUrlPrint={empresa?.logo_url_print ?? null}
         mode="impressao"
       />
     </>

@@ -2,12 +2,20 @@ import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { AppLogo } from '@/components/app-logo';
 import { StatusBadge } from '@/components/status-badge';
+import { rotuloFormaPagamento } from '@/lib/parser/forma-pagamento';
+import { rotuloEntrega } from '@/lib/pedidos/entrega';
 import type {
   Pedido,
   PedidoLogistica,
   PontoRetirada,
   PedidoItem,
 } from '@/lib/types';
+
+const ROTULO_PONTO: Record<string, string> = {
+  loja: 'Loja',
+  deposito: 'Depósito',
+  entrega: 'Entrega',
+};
 
 export type PontoComItens = PontoRetirada & { itens: PedidoItem[] };
 
@@ -16,12 +24,14 @@ export function MapaCarregamento({
   pontos,
   logistica,
   vendedor,
+  logoUrlPrint,
   mode = 'leitura',
 }: {
   pedido: Pedido;
   pontos: PontoComItens[];
   logistica?: PedidoLogistica | null;
   vendedor?: { full_name: string | null; email: string | null } | null;
+  logoUrlPrint?: string | null;
   mode?: 'leitura' | 'impressao';
 }) {
   const fmtDate = (d: string | null) =>
@@ -52,7 +62,12 @@ export function MapaCarregamento({
     >
       {/* Header */}
       <header className="border-b border-black/20 px-6 py-4 flex items-center justify-between gap-6">
-        <AppLogo variant="dark" size={56} />
+        {logoUrlPrint ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={logoUrlPrint} alt="" className="h-14 w-auto object-contain" />
+        ) : (
+          <AppLogo variant="dark" size={56} />
+        )}
         <div className="text-right">
           <h1 className="text-lg font-bold tracking-tight">Mapa de Carregamento</h1>
           <p className="text-xs text-muted-foreground">
@@ -62,6 +77,12 @@ export function MapaCarregamento({
                 {' '}· ERP <span className="font-mono">{pedido.documento_erp}</span>
               </>
             )}
+          </p>
+          <p className="mt-1 text-base font-bold uppercase tracking-wide text-franzoni-navy">
+            Entregar:{' '}
+            <span className="text-brand-700">
+              {rotuloEntrega(pedido.data_entrega, pedido.data_entrega_inicio, new Date())}
+            </span>
           </p>
           {!isPrint && <div className="mt-2"><StatusBadge status={pedido.status} /></div>}
         </div>
@@ -105,7 +126,7 @@ export function MapaCarregamento({
           <KV label="Tel"     value={pedido.cliente_telefone} className="col-span-2" />
           <KV
             label="Pagamento"
-            value={`${pedido.forma_pagamento ?? '—'}${pedido.parcelas ? ` · ${pedido.parcelas}` : ''}`}
+            value={rotuloFormaPagamento(pedido.forma_pagamento, pedido.parcelas)}
             className="col-span-2"
           />
         </Grid>
@@ -115,12 +136,19 @@ export function MapaCarregamento({
       {pontos.map((ponto, idx) => (
         <Section
           key={ponto.id}
-          title={`${ponto.tipo === 'loja' ? 'Loja' : 'Depósito'} ${pontos.length > 1 ? `· ${idx + 1}/${pontos.length}` : ''}`}
+          title={`${ROTULO_PONTO[ponto.tipo] ?? 'Loja'} ${pontos.length > 1 ? `· ${idx + 1}/${pontos.length}` : ''}`}
           headerExtra={ponto.empresa_nome}
           className={isPrint && idx > 0 ? 'print-break-before' : ''}
         >
-          {ponto.endereco && (
-            <p className="text-xs text-muted-foreground mb-2">{ponto.endereco}</p>
+          {ponto.tipo === 'entrega' ? (
+            <p className="text-xs mb-2">
+              <span className="font-semibold uppercase tracking-wider text-brand-700">Enviar para:</span>{' '}
+              {ponto.endereco || pedido.cliente_endereco || '—'}
+            </p>
+          ) : (
+            ponto.endereco && (
+              <p className="text-xs text-muted-foreground mb-2">{ponto.endereco}</p>
+            )
           )}
           {ponto.itens.length === 0 ? (
             <p className="text-sm italic text-muted-foreground">Sem itens.</p>
