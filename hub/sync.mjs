@@ -125,6 +125,7 @@ export async function syncOnce({ db, apiBase, deviceToken, fetchImpl = globalThi
   let ok = true;
   let firstError = null;
   let pending = 0;
+  state.lastSkipped = 0; // linhas puladas neste ciclo (FK/dado inesperado) — ver log
 
   // ---- PUSH (local → nuvem), uma tabela two-way por vez --------------------
   for (const t of TWO_WAY_TABLES) {
@@ -266,14 +267,28 @@ export async function syncOnce({ db, apiBase, deviceToken, fetchImpl = globalThi
         for (const t of SYNC_TABLES) {
           const rows = pulled.tables[t.name];
           if (!rows || rows.length === 0) continue;
-          try {
-            // Upsert por PK (sobrescrita pra tabelas down — read-only no hub; merge
-            // já foi resolvido na nuvem pras two-way). Linhas com deleted_at aplicam
-            // soft-delete (é só um upsert da linha já marcada — estado vem da nuvem).
-            for (const row of rows) {
+          // Resiliência: aplica LINHA-A-LINHA. Uma linha que falha (ex.: FK de uma
+          // linha-pai ainda não aplicada, ou dado inesperado) é LOGADA com a PK e
+          // PULADA — não derruba o resto da tabela nem as tabelas dependentes. Antes,
+          // um único erro abortava o lote inteiro (clientes 1/6 → pedidos 0 por FK).
+          let skipped = 0;
+          for (const row of rows) {
+            try {
+              // Upsert por PK (sobrescrita pra tabelas down — read-only no hub; merge
+              // já foi resolvido na nuvem pras two-way). Linhas com deleted_at aplicam
+              // soft-delete (é só um upsert da linha já marcada — estado vem da nuvem).
               await db.upsert(t.name, t.pk, row);
+            } catch (e) {
+              skipped++;
+              const pk = Array.isArray(t.pk) ? t.pk.map((k) => row[k]).join('/') : row[t.pk];
+              logger.error(`sync pull apply ${t.name} pk=${pk}: ${e?.message} — linha pulada`);
             }
-            // Avança pull_at = nextCursor da nuvem (ou max local) — só após aplicar.
+          }
+          if (skipped > 0) state.lastSkipped = (state.lastSkipped || 0) + skipped;
+          try {
+            // Avança pull_at = nextCursor da nuvem (ou max local). Avança mesmo com
+            // linhas puladas (a página foi processada); se a nuvem corrigir o dado, o
+            // updated_at muda e a linha volta num pull futuro.
             const next =
               (pulled.nextCursors && pulled.nextCursors[t.name]) ||
               maxUpdatedAt(rows, cursorsReq[t.name]);
@@ -284,8 +299,7 @@ export async function syncOnce({ db, apiBase, deviceToken, fetchImpl = globalThi
           } catch (e) {
             ok = false;
             firstError ??= e?.message || String(e);
-            logger.error(`sync pull apply ${t.name}: ${e?.message}`);
-            // cursor desta tabela NÃO avança.
+            logger.error(`sync pull cursor ${t.name}: ${e?.message}`);
           }
         }
       }

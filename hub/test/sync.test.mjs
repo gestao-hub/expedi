@@ -69,6 +69,34 @@ describe('syncOnce — pull', () => {
     db = makeMemDb();
   });
 
+  it('pula linha que falha no upsert e aplica o resto (não derruba a tabela)', async () => {
+    const orig = db.upsert;
+    db.upsert = async (table, pk, row) => {
+      if (table === 'clientes' && row.id === 'c2') throw new Error('FK simulada');
+      return orig(table, pk, row);
+    };
+    const pullFn = async () => ({
+      tables: {
+        clientes: [
+          { id: 'c1', nome: 'Ana', updated_at: '2026-01-01T10:00:00Z' },
+          { id: 'c2', nome: 'Bia', updated_at: '2026-01-02T10:00:00Z' },
+          { id: 'c3', nome: 'Cid', updated_at: '2026-01-03T10:00:00Z' },
+        ],
+      },
+      nextCursors: { clientes: '2026-01-03T10:00:00Z' },
+    });
+    const pushFn = async () => ({ tables: {} });
+
+    const res = await syncOnce({ db, apiBase, deviceToken, pullFn, pushFn });
+
+    // c1 e c3 aplicados; só c2 pulado. O ciclo NÃO é reprovado por 1 linha.
+    expect(db.get('clientes', 'c1')).toBeTruthy();
+    expect(db.get('clientes', 'c3')).toBeTruthy();
+    expect(db.get('clientes', 'c2')).toBeFalsy();
+    expect(res.ok).toBe(true);
+    expect(getState().lastSkipped).toBe(1);
+  });
+
   it('faz upsert das linhas recebidas e avança pull_at pro maior updated_at', async () => {
     const pullFn = async () => ({
       tables: {
