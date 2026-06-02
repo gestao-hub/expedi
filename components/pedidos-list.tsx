@@ -256,9 +256,6 @@ export function PedidosList({
                 if (prev.some((p) => p.id === novo.id)) return prev;
                 return [novo, ...prev];
               });
-              if (mode === 'logistica' && novo.status === 'pendente') {
-                toast(`Novo pedido na fila: ${novo.cliente_nome}`);
-              }
             } else if (payload.eventType === 'UPDATE') {
               setPedidos((prev) =>
                 prev.map((p) => (p.id === (payload.new as Pedido).id ? (payload.new as Pedido) : p)),

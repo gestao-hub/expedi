@@ -7,6 +7,7 @@ import { Menu, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { BrandLogo } from '@/components/layout/brand-logo';
 import { useUser } from '@/components/providers/user-provider';
+import { AlertasCenter } from '@/components/alertas/alertas-center';
 import type { UserRole } from '@/lib/types';
 import type { EmpresaAtual } from '@/lib/empresa/current';
 import {
@@ -60,15 +61,18 @@ export function MobileHeader({ empresa }: { empresa?: EmpresaAtual | null }) {
         <Link href="/" className="flex items-center">
           <BrandLogo empresa={empresa} size={36} />
         </Link>
-        <Button
-          variant="ghost"
-          size="icon"
-          aria-label="Menu"
-          className="text-white hover:bg-white/8"
-          onClick={() => setOpen(true)}
-        >
-          <Menu className="h-5 w-5" />
-        </Button>
+        <div className="flex items-center gap-1">
+          <AlertasCenter />
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label="Menu"
+            className="text-white hover:bg-white/8"
+            onClick={() => setOpen(true)}
+          >
+            <Menu className="h-5 w-5" />
+          </Button>
+        </div>
       </header>
 
       {open && (
