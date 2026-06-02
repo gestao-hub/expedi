@@ -2,13 +2,70 @@
 
 import { useEffect, useState } from 'react';
 
+const PX_CM = 96 / 2.54;
+const ALVO_CM = 12.8; // altura alvo por via p/ caber 2 numa folha A4 (c/ folga)
+const ZOOM_MIN = 0.65; // se precisar encolher mais que isso, pagina (1 via/página)
+
 /**
- * Dispara window.print() automaticamente ~400ms após o carregamento,
- * dando tempo para imagens/fontes renderizarem.
+ * Ajusta a impressão de cada documento (.folha-vias) pra caber SEM cortar:
+ * - mede a via na largura real de impressão (A4 − margens = 190mm);
+ * - aplica o zoom mínimo necessário p/ as 2 vias caberem na folha;
+ * - se o pedido for grande demais (zoom ficaria ilegível), marca .paginado →
+ *   1 via por página inteira (nada é cortado).
+ * Roda na tela de impressão (single e lote) e reage à troca do check.
+ */
+function ajustarVias(guiaCliente: boolean) {
+  document.querySelectorAll<HTMLElement>('.folha-vias').forEach((doc) => {
+    doc.classList.remove('paginado');
+    const vias = Array.from(
+      doc.querySelectorAll<HTMLElement>('.via-bloco > div.bg-white'),
+    );
+    if (vias.length === 0) return;
+
+    if (!guiaCliente) {
+      // 1 via só (guia inativa): tamanho natural, sem zoom.
+      vias.forEach((v) => {
+        v.style.zoom = '';
+      });
+      return;
+    }
+
+    // Mede a altura natural de uma via na LARGURA DE IMPRESSÃO (pra bater com o papel).
+    vias.forEach((v) => {
+      v.style.zoom = '1';
+    });
+    const larguraAnterior = doc.style.width;
+    doc.style.width = '190mm';
+    void doc.offsetHeight; // força reflow
+    const naturalCm = vias[0].getBoundingClientRect().height / PX_CM;
+    doc.style.width = larguraAnterior;
+    if (!naturalCm) return;
+
+    const needed = ALVO_CM / naturalCm;
+    if (needed >= ZOOM_MIN) {
+      // Cabe encolhendo: aplica o zoom mínimo necessário (no máx. 1 = sem encolher).
+      const z = Math.min(1, needed);
+      vias.forEach((v) => {
+        v.style.zoom = String(z);
+      });
+    } else {
+      // Grande demais p/ 2 numa folha → 1 via por página, encolhendo só p/ caber 1 folha.
+      doc.classList.add('paginado');
+      const zPag = Math.min(1, 25.5 / naturalCm);
+      vias.forEach((v) => {
+        v.style.zoom = String(zPag);
+      });
+    }
+  });
+}
+
+/**
+ * Dispara window.print() automaticamente após o carregamento, dando tempo para
+ * imagens/fontes renderizarem (e o ajuste de vias rodar).
  */
 export function AutoPrint() {
   useEffect(() => {
-    const t = setTimeout(() => window.print(), 400);
+    const t = setTimeout(() => window.print(), 600);
     return () => clearTimeout(t);
   }, []);
   return null;
@@ -22,6 +79,10 @@ export function PrintControls({ defaultGuia = true }: { defaultGuia?: boolean })
 
   useEffect(() => {
     document.body.classList.toggle('sem-via-cliente', !guiaCliente);
+    ajustarVias(guiaCliente);
+    // Re-ajusta depois que fontes/imagens assentam (a medição inicial pode mudar).
+    const t = setTimeout(() => ajustarVias(guiaCliente), 350);
+    return () => clearTimeout(t);
   }, [guiaCliente]);
 
   // Limpa a classe ao sair da página de impressão.

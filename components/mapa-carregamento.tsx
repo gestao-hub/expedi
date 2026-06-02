@@ -285,12 +285,14 @@ export function MapaCarregamento({
   // entrega; Cliente embaixo fica com quem recebe os materiais), recorte no meio.
   if (isPrint) {
     return (
-      <div className="bg-white text-black text-[10pt] mx-auto max-w-[210mm]">
-        {/* Cada via ocupa metade da folha A4 (altura fixa via .via-bloco no print). */}
+      <div className="folha-vias bg-white text-black text-[10pt] mx-auto max-w-[210mm]">
+        {/* Cada via ocupa metade da folha A4 (altura fixa via .via-bloco no print).
+            O zoom de cada via é ajustado por JS (AjustarVias) pra caber sem cortar;
+            pedido grande demais cai pra 1 via/página (classe .paginado). */}
         <div className="via-bloco">{via('1ª via · Loja')}</div>
         {/* 2ª via destacável — controlada pelo check "Guia do cliente" (classe .via-cliente) */}
         <div className="via-bloco via-cliente">
-          <div className="relative border-t-2 border-dashed border-black/50 mb-2 print-avoid-break">
+          <div className="recorte relative border-t-2 border-dashed border-black/50 mb-2 print-avoid-break">
             <span className="absolute -top-1.5 left-1/2 -translate-x-1/2 bg-white px-2 text-[8px] font-bold uppercase tracking-widest text-black/50">
               Recorte aqui · via do cliente
             </span>

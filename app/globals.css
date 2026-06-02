@@ -304,12 +304,17 @@
   /* 2 vias por folha: cada via ocupa metade da A4 (≈13,85cm; deixo folga p/ caber
    * as duas + cabeçalho/rodapé do navegador). Recorte fica exatamente no meio. */
   .via-bloco { height: 13.5cm; overflow: hidden; }
-  /* O conteúdo de uma via (~16,4cm) é mais alto que meia folha, então encolho ~24%
-   * pra caber TUDO (header, itens, totais, observações E assinaturas) sem cortar.
-   * Só no modo 2 vias — a guia inativa (1 via) usa o tamanho normal. */
+  /* O conteúdo de uma via (~16,4cm) é mais alto que meia folha, então encolho.
+   * O zoom REAL é calculado por JS (AjustarVias) conforme o tamanho do pedido e
+   * aplicado inline; este 0.76 é só fallback se o JS não rodar. Só no modo 2 vias. */
   body:not(.sem-via-cliente) .via-bloco > div.bg-white { zoom: 0.76; }
   /* Guia do cliente INATIVA: sai 1 via só, usando a altura natural da folha. */
   body.sem-via-cliente .via-bloco { height: auto; overflow: visible; }
+  /* Pedido grande demais p/ 2 vias numa folha: AjustarVias marca .paginado →
+   * cada via usa altura cheia e a 2ª via vai p/ a página seguinte (nada cortado). */
+  .folha-vias.paginado .via-bloco { height: auto; overflow: visible; }
+  .folha-vias.paginado .via-cliente { break-before: page; }
+  .folha-vias.paginado .recorte { display: none; }
 
   /* Remove sombras/efeitos */
   * { box-shadow: none !important; text-shadow: none !important; }
