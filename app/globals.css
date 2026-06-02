@@ -305,4 +305,8 @@
   * { box-shadow: none !important; text-shadow: none !important; }
 }
 
+/* Guia do cliente (2ª via destacável): quando o check está INATIVO, o body
+ * recebe .sem-via-cliente e a 2ª via some — tanto no preview quanto no papel. */
+body.sem-via-cliente .via-cliente { display: none !important; }
+
 .print-only { display: none; }

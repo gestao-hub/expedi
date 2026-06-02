@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 /**
  * Dispara window.print() automaticamente ~400ms após o carregamento,
@@ -15,11 +15,34 @@ export function AutoPrint() {
 }
 
 export function PrintControls() {
+  // Guia do cliente = 2ª via destacável. Ativo por padrão (repete a folha).
+  // Inativo → adiciona .sem-via-cliente no body e a 2ª via não é impressa.
+  const [guiaCliente, setGuiaCliente] = useState(true);
+
+  useEffect(() => {
+    document.body.classList.toggle('sem-via-cliente', !guiaCliente);
+  }, [guiaCliente]);
+
+  // Limpa a classe ao sair da página de impressão.
+  useEffect(() => () => document.body.classList.remove('sem-via-cliente'), []);
+
   return (
-    <div className="no-print p-3 border-b flex justify-between bg-muted/30 text-sm">
+    <div className="no-print p-3 border-b flex items-center justify-between gap-4 bg-muted/30 text-sm">
       <button onClick={() => window.close()} className="underline">
         Fechar
       </button>
+      <label className="flex items-center gap-2 cursor-pointer select-none">
+        <input
+          type="checkbox"
+          checked={guiaCliente}
+          onChange={(e) => setGuiaCliente(e.target.checked)}
+          className="h-4 w-4 accent-franzoni-navy"
+        />
+        <span>
+          Guia do cliente{' '}
+          <span className="text-muted-foreground">(2ª via destacável)</span>
+        </span>
+      </label>
       <button onClick={() => window.print()} className="underline">
         Imprimir novamente
       </button>

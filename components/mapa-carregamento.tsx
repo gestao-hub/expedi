@@ -52,22 +52,31 @@ export function MapaCarregamento({
       ? Number(logistica.peso_liquido_total)
       : allItens.reduce((s: number, i: PedidoItem) => s + (Number(i.peso_liquido) || 0), 0);
 
-  return (
+  // Corpo do documento como função reutilizável: na impressão geramos 2 vias
+  // idênticas na mesma folha (Loja em cima, Cliente embaixo, recorte no meio).
+  const via = (viaLabel: string | null) => (
     <div
       className={
         isPrint
-          ? 'bg-white text-black text-[10pt] mx-auto max-w-[210mm]'
+          ? 'bg-white text-black print-avoid-break'
           : 'bg-white text-foreground border rounded-lg overflow-hidden'
       }
     >
       {/* Header */}
       <header className="border-b border-black/20 px-4 py-2 flex items-center justify-between gap-4">
-        {logoUrlPrint ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={logoUrlPrint} alt="" className="h-11 w-auto object-contain" />
-        ) : (
-          <AppLogo variant="dark" size={44} />
-        )}
+        <div className="flex items-center gap-2">
+          {logoUrlPrint ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={logoUrlPrint} alt="" className="h-11 w-auto object-contain" />
+          ) : (
+            <AppLogo variant="dark" size={44} />
+          )}
+          {viaLabel && (
+            <span className="text-[8px] font-bold uppercase tracking-widest text-franzoni-navy border border-black/25 rounded px-1.5 py-0.5 leading-none">
+              {viaLabel}
+            </span>
+          )}
+        </div>
         <div className="text-right">
           <h1 className="text-base font-bold tracking-tight">Pedido</h1>
           <p className="text-xs text-muted-foreground">
@@ -271,6 +280,27 @@ export function MapaCarregamento({
       </footer>
     </div>
   );
+
+  // Tela: uma via só. Impressão: 2 vias na mesma folha (Loja em cima fica com quem
+  // entrega; Cliente embaixo fica com quem recebe os materiais), recorte no meio.
+  if (isPrint) {
+    return (
+      <div className="bg-white text-black text-[10pt] mx-auto max-w-[210mm]">
+        {via('1ª via · Loja')}
+        {/* 2ª via destacável — controlada pelo check "Guia do cliente" (classe .via-cliente) */}
+        <div className="via-cliente">
+          <div className="relative border-t-2 border-dashed border-black/50 my-2 print-avoid-break">
+            <span className="absolute -top-1.5 left-1/2 -translate-x-1/2 bg-white px-2 text-[8px] font-bold uppercase tracking-widest text-black/50">
+              Recorte aqui · via do cliente
+            </span>
+          </div>
+          {via('2ª via · Cliente')}
+        </div>
+      </div>
+    );
+  }
+
+  return via(null);
 }
 
 // ---------- subcomponentes ----------
