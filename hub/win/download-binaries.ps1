@@ -51,6 +51,15 @@ $ProgressPreference     = 'SilentlyContinue'  # downloads muito mais rapidos no 
 
 function Write-Step($msg) { Write-Host "==> $msg" -ForegroundColor Cyan }
 
+# Log em arquivo: o [Run] do Inno roda este script com runhidden (saida invisivel).
+# Start-Transcript grava tudo (passos + erros) em C:\Exped\logs\download-binaries.log
+# pra auditar depois. (InstallDir e ...\bin; o pai e a raiz C:\Exped.)
+$logDir = Join-Path (Split-Path -Parent $InstallDir) 'logs'
+try {
+  New-Item -ItemType Directory -Force -Path $logDir | Out-Null
+  Start-Transcript -Path (Join-Path $logDir 'download-binaries.log') -Append | Out-Null
+} catch { }
+
 # ---------------------------------------------------------------------------
 # 0. Preparar diretorios
 # ---------------------------------------------------------------------------
@@ -223,3 +232,5 @@ Write-Host "    NSSM       : nssm.exe"
 Write-Host "    GoTrue     : auth.exe + migrations\ (do pacote do hub)"
 Write-Host ""
 Write-Host "Veja README.md para os passos de validacao de cada binario." -ForegroundColor Cyan
+
+try { Stop-Transcript | Out-Null } catch { }

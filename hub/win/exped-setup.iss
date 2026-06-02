@@ -142,28 +142,24 @@ Source: "{#AgentPublish}\*"; DestDir: "{localappdata}\ExpedAgent"; Flags: recurs
 Source: "{#AgentStartCmd}";  DestDir: "{localappdata}\ExpedAgent"; Flags: ignoreversion
 
 [Run]
-; A ORDEM importa:
-;   1. download-binaries.ps1  -> baixa Postgres/PostgREST/Node/NSSM pra bin\
-;      (COMENTE este passo se voce pre-bundlou os binarios — ver [Files] acima)
-;   2. (gerar jwtSecret real no config.json — feito em [Code] CurStepChanged)
-;   3. install-service.ps1    -> registra+inicia o serviço ExpedHub e abre o firewall
-;   4. provision.ps1          -> resgata o codigo do wizard (ou aplica Token+URL do
-;                                modo manual) e escreve config.json + appsettings.json.
-; O bootstrap do banco (criar DB/auth/schema) é feito pelo MAESTRO no 1o start.
+; A ORDEM importa (o servico precisa subir UMA vez ja com as credenciais cloud):
+;   1. download-binaries.ps1  -> baixa Postgres/PostgREST/Node pra bin\ (NSSM vem
+;      pre-empacotado em payload\bin e o download pula; ver [Files]/download-binaries.ps1).
+;   2. (jwtSecret real no config.json -> feito em [Code] CurStepChanged, antes do [Run])
+;   3. provision.ps1          -> resgata o codigo (ou Token+URL do modo manual) e escreve
+;                                cloud.apiBase/deviceToken no config.json + appsettings do agente.
+;   4. install-service.ps1    -> le o config.json JA COMPLETO, injeta as env EXPED_* e
+;                                inicia o servico ExpedHub (+ firewall). Sync liga de primeira.
+; provision roda ANTES do install-service de proposito: se o servico subisse antes das
+; credenciais, ficaria em "modo ilha" (sync desligado) e exigiria reiniciar.
+; O bootstrap do banco (DB/auth/schema) e feito pelo MAESTRO no 1o start do servico.
 Filename: "powershell.exe"; \
     Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\hub\win\download-binaries.ps1"" -InstallDir ""{app}\bin"""; \
-    StatusMsg: "Baixando binarios (PostgreSQL, PostgREST, Node, NSSM)..."; \
+    StatusMsg: "Baixando binarios (PostgreSQL, PostgREST, Node)..."; \
     Flags: runhidden waituntilterminated
 
-Filename: "powershell.exe"; \
-    Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\hub\win\install-service.ps1"" -Root ""{app}"" -ConfigPath ""{app}\config.json"""; \
-    StatusMsg: "Registrando e iniciando o serviço ExpedHub..."; \
-    Flags: runhidden waituntilterminated
-
-; --- Provisionamento: MODO CÓDIGO (default) ---------------------------------
-; Resgata o código digitado no wizard. {code:GetCode} usa o scripted constant
-; GetCode (ver [Code]) que retorna Trim(CodePage.Values[0]). Só roda se NÃO estiver
-; em modo manual e o código não estiver vazio (Check: IsCodeMode).
+; --- Provisionamento: MODO CODIGO (default) ---------------------------------
+; Resgata o codigo digitado no wizard ({code:GetCode}). So roda fora do modo manual.
 Filename: "powershell.exe"; \
     Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\hub\win\provision.ps1"" -Code ""{code:GetCode}"" -Root ""{app}"" -AgentDir ""{localappdata}\ExpedAgent"""; \
     StatusMsg: "Provisionando..."; \
@@ -171,14 +167,18 @@ Filename: "powershell.exe"; \
     Check: IsCodeMode
 
 ; --- Provisionamento: MODO MANUAL (suporte) ---------------------------------
-; Em vez do código, o operador de suporte digita o Token + a URL da nuvem direto.
-; provision.ps1 aceita -DeviceToken/-CloudApi e pula o resgate (escreve os configs
-; com os valores informados). Só roda se o checkbox "modo manual" estiver marcado.
+; Em vez do codigo, o suporte digita Token + URL direto (provision pula o resgate).
 Filename: "powershell.exe"; \
     Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\hub\win\provision.ps1"" -DeviceToken ""{code:GetManualToken}"" -CloudApi ""{code:GetManualUrl}"" -Root ""{app}"" -AgentDir ""{localappdata}\ExpedAgent"""; \
     StatusMsg: "Provisionando (modo manual)..."; \
     Flags: runhidden waituntilterminated; \
     Check: IsManualMode
+
+; --- Registra e inicia o servico (POR ULTIMO, com o config.json ja completo) -
+Filename: "powershell.exe"; \
+    Parameters: "-NoProfile -ExecutionPolicy Bypass -File ""{app}\hub\win\install-service.ps1"" -Root ""{app}"" -ConfigPath ""{app}\config.json"""; \
+    StatusMsg: "Registrando e iniciando o servico ExpedHub..."; \
+    Flags: runhidden waituntilterminated
 
 [UninstallRun]
 ; Para+remove o serviço e a regra de firewall ANTES de apagar os arquivos.
