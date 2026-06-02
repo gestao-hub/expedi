@@ -16,6 +16,8 @@ public sealed class Worker(AgentConfig cfg, HiperRepository repo, IngestClient c
 
             try { await TickAsync(situacoesVenda, ct); }
             catch (Exception ex) { log.LogError(ex, "Erro no ciclo de sync"); }
+            try { await TickNfPendentesAsync(ct); }
+            catch (Exception ex) { log.LogError(ex, "Erro no re-sync de NF"); }
             if (rc.SyncOs)
             {
                 try { await TickOsAsync(AgentConfig.ParseSituacoes(rc.SituacoesOs), ct); }
@@ -143,6 +145,9 @@ public sealed class Worker(AgentConfig cfg, HiperRepository repo, IngestClient c
             {
                 log.LogInformation("Pedido {Cod} sincronizado ({R}{Pdf}).", h.Codigo, r, pdfExiste ? ", com PDF" : ", sem PDF");
                 maxOk = h.IdPedidoVenda;
+                // Ingerido sem NF → observa pra re-sincronizar quando faturar (2→5).
+                if (string.IsNullOrWhiteSpace(h.NfNumero))
+                    state.AddNfPendente(h.IdPedidoVenda, h.Codigo, DateTime.UtcNow);
             }
             else
             {
@@ -151,5 +156,32 @@ public sealed class Worker(AgentConfig cfg, HiperRepository repo, IngestClient c
             }
         }
         if (maxOk > hwm) state.SetHwm(maxOk);
+    }
+
+    /// <summary>
+    /// Re-sync de NF: pra cada pedido na lista "aguardando NF", checa se já faturou
+    /// no Hiper; se sim, manda só a NF+pagamento pro Exped e tira da lista. TTL 7 dias.
+    /// Best-effort — nunca quebra o sync principal.
+    /// </summary>
+    private async Task TickNfPendentesAsync(CancellationToken ct)
+    {
+        state.PruneNfPendentes(DateTime.UtcNow, 7);
+        foreach (var p in state.GetNfPendentes())
+        {
+            if (ct.IsCancellationRequested) break;
+            var nf = await repo.NfDoPedidoAsync(p.IdPedidoVenda, ct);
+            if (nf is not { } n) continue; // ainda sem NF — tenta no próximo poll
+
+            (string? Forma, string? Parcelas)? pg = null;
+            try { pg = await repo.PagamentoDoPedidoAsync(p.IdPedidoVenda, ct); }
+            catch (Exception ex) { log.LogWarning("Pagamento (re-sync) do pedido {Doc} indisponível: {Msg}", p.DocumentoErp, ex.Message); }
+
+            var r = await client.EnviarNfAsync(p.DocumentoErp, n, pg, ct);
+            if (r is NfSyncResult.Ok or NfSyncResult.NotFound)
+            {
+                state.RemoveNfPendente(p.IdPedidoVenda);
+                log.LogInformation("NF re-sincronizada: pedido {Doc} ({R}).", p.DocumentoErp, r);
+            }
+        }
     }
 }
