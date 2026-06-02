@@ -188,7 +188,7 @@ if (Test-Path -LiteralPath $nssmExe) {
         catch { Write-Host "    tentativa $i de NSSM falhou: $($_.Exception.Message)"; Start-Sleep -Seconds 3 }
     }
     if (-not $nssmOk) {
-        throw "Falha ao baixar NSSM (nssm.cc) apos 3 tentativas. Solucao robusta: pre-empacote o nssm.exe (win64) em payload\bin\nssm.exe — o instalador o copia e este download e pulado. (Ou copie um nssm.exe para $InstallDir e rode de novo.)"
+        throw "Falha ao baixar NSSM (nssm.cc) apos 3 tentativas. Solucao robusta: pre-empacote o nssm.exe (win64) em payload\bin\nssm.exe - o instalador o copia e este download e pulado. (Ou copie um nssm.exe para $InstallDir e rode de novo.)"
     }
     Write-Step "Extraindo NSSM (nssm.exe win64) para $InstallDir ..."
     $nssmExtract = Join-Path $tmp "nssm-extract"
