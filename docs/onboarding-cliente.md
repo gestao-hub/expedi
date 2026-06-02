@@ -60,6 +60,18 @@ GoTrue vêm no pacote do hub; o agente é .NET self-contained. O hub baixa os bi
       religar → a alteração sobe pra nuvem (`/status` `pendingPush` zera).
 - [ ] **Reboot:** reiniciar a máquina → `ExpedHub` sobe sozinho.
 
+### 5. Avisos de pedido novo (PC do operador)
+- [ ] No **PC do operador** (o mesmo que roda o Hiper), abrir o Exped por
+      **http://localhost:3000** (não pelo IP da LAN). Isso libera a **notificação do Windows**
+      e o **som** do aviso de pedido novo (recurso só disponível em contexto seguro = localhost).
+- [ ] Clicar uma vez no **sino → "Ativar avisos"** (o navegador exige esse clique para liberar
+      som e permissão de notificação). Aceitar a permissão de notificação.
+- [ ] No sino, escolher a forma do aviso (som, repetir, notificação) e usar **"Testar aviso"**.
+- [ ] Deixar essa aba do Exped **aberta** (pode ficar minimizada atrás do Hiper). Quando um pedido
+      sair do Hiper, toca o som + notificação + a aba pisca.
+- [ ] Pelo **IP da LAN** (outros PCs/celulares) o aviso ainda toca som e pisca a aba, mas **sem**
+      a notificação do Windows (limitação de contexto inseguro do navegador).
+
 ---
 
 ## Fluxo dos dados (híbrido)
