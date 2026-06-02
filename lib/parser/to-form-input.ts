@@ -61,7 +61,7 @@ export function emptyFormInput(empresaEmissora = ''): PedidoFormInput {
     cliente_telefone: null,
     forma_pagamento: null,
     parcelas: null,
-    receber_na_entrega: true, // padrão da casa: recebe na entrega
+    receber_na_entrega: false, // desmarcado por padrão; o vendedor marca quando for o caso
     valor_total: 0,
     observacoes: null,
     storage_pdf_path: null,

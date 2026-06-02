@@ -77,7 +77,7 @@ const STEPS_BY_ROLE: Record<UserRole, Step[]> = {
       icon: CheckCircle2,
       title: 'Checkbox "Receber na entrega"',
       body:
-        'Na seção Pagamento, o checkbox "Receber na entrega" marca que o valor é recebido na entrega (ex.: o motorista cobra) — é o padrão da casa, já vem marcado. É INDEPENDENTE da forma de pagamento: você pode marcar "Receber na entrega" e ainda escolher a forma (ex.: receber na entrega em Dinheiro). No mapa impresso aparece em destaque pra logística.',
+        'Na seção Pagamento, o checkbox "Receber na entrega" marca que o valor é recebido na entrega (ex.: o motorista cobra). Vem desmarcado — marque quando for o caso. É INDEPENDENTE da forma de pagamento: você pode marcar "Receber na entrega" e ainda escolher a forma (ex.: receber na entrega em Dinheiro). No mapa impresso aparece em destaque pra logística.',
     },
     {
       icon: Send,
