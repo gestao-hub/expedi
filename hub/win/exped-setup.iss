@@ -330,6 +330,19 @@ begin
     Result := ManualCheck.Checked;
 end;
 
+{ Roda APOS o wizard e ANTES de copiar arquivos. Se o servico ExpedHub ja existe e
+  esta rodando (reinstalacao/atualizacao), ele segura auth.exe/nssm.exe/etc. e o [Files]
+  falha com "Acesso negado" (DeleteFile codigo 5). Paramos o servico aqui pra liberar os
+  binarios; o install-service.ps1 do [Run] reinicia depois. Em maquina virgem (sem o
+  servico), o sc stop apenas falha em silencio e seguimos. }
+function PrepareToInstall(var NeedsRestart: Boolean): String;
+var rc: Integer;
+begin
+  Result := '';
+  Exec(ExpandConstant('{cmd}'), '/c sc stop ExpedHub', '', SW_HIDE, ewWaitUntilTerminated, rc);
+  Sleep(3000); { da tempo do processo soltar os handles dos binarios }
+end;
+
 { ============================================================================
   jwtSecret aleatorio (igual ao exped-hub.iss) + autostart do agente (.vbs)
   ----------------------------------------------------------------------------
