@@ -52,7 +52,7 @@ export async function GET(req: NextRequest) {
 
   // Monta CSV
   const headers = [
-    'Mapa',
+    'Nº',
     'Documento ERP',
     'Data Emissão',
     'Data Entrega',

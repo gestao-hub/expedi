@@ -124,9 +124,9 @@ const STEPS_BY_ROLE: Record<UserRole, Step[]> = {
     },
     {
       icon: Printer,
-      title: 'Imprima o Mapa de Carregamento',
+      title: 'Imprima o Pedido',
       body:
-        'Botão "Imprimir Mapa" abre uma versão A4 pronta numa nova aba, com cliente, endereço, itens, totais, pesos e linha de assinatura do conferente. O navegador chama o diálogo de impressão automaticamente.',
+        'Botão "Imprimir Pedido" abre uma versão A4 pronta numa nova aba, com cliente, endereço, itens, totais, pesos e linha de assinatura do conferente. O navegador chama o diálogo de impressão automaticamente.',
       tip: 'Pra economizar tinta, configure o Chrome em "Mais configurações → Cor → Preto e branco" antes de imprimir.',
     },
     {
@@ -260,7 +260,7 @@ const ADVANCED_FEATURES: Step[] = [
     icon: ArrowUpDown,
     title: 'Ordenação por coluna',
     body:
-      'Nas listagens, clique no cabeçalho de qualquer coluna pra ordenar. Click de novo inverte a direção. Funciona em Mapa, Cliente, Bairro, Entrega e Valor. O ícone de seta indica a direção atual.',
+      'Nas listagens, clique no cabeçalho de qualquer coluna pra ordenar. Click de novo inverte a direção. Funciona em Nº, Cliente, Bairro, Entrega e Valor. O ícone de seta indica a direção atual.',
   },
   {
     icon: Filter,
@@ -353,12 +353,11 @@ type GlossaryEntry = { term: string; def: React.ReactNode };
 
 const GLOSSARY: GlossaryEntry[] = [
   {
-    term: 'Mapa de Carregamento',
+    term: 'Pedido (impressão)',
     def: (
       <>
         Documento que a logística imprime e leva pra entrega. Tem cliente, endereço, itens da
-        loja/depósito, totais, peso e linha de assinatura do conferente. O nome da plataforma vem
-        daí.
+        loja/depósito, totais, peso e linha de assinatura do conferente.
       </>
     ),
   },
@@ -372,10 +371,10 @@ const GLOSSARY: GlossaryEntry[] = [
     ),
   },
   {
-    term: 'Número do Mapa',
+    term: 'Número do Pedido',
     def: (
       <>
-        Identificador interno do Franzoni (ex.: <code className="text-xs">#42</code>),
+        Identificador interno do sistema (ex.: <code className="text-xs">#42</code>),
         sequencial. Diferente do Documento ERP. Aparece em todas as listagens e na impressão.
       </>
     ),
@@ -448,7 +447,7 @@ const GLOSSARY: GlossaryEntry[] = [
         Cliente com CNPJ ou CPF pode ter vários <strong>endereços cadastrados</strong>{' '}
         (Sede, Obra 1, Depósito) gerenciados em /admin/clientes. No formulário do pedido, o
         vendedor escolhe um do seletor (auto-pré-seleciona se bater com o do PDF) ou usa
-        "Outro endereço" pra digitar livre e opcionalmente salvar como novo. O Mapa
+        "Outro endereço" pra digitar livre e opcionalmente salvar como novo. O Pedido
         impresso sempre mostra o endereço daquele pedido (snapshot), mesmo que o cadastro
         do cliente mude depois.
       </>

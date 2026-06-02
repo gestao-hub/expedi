@@ -526,7 +526,7 @@ export function PedidosList({
                   </TableHead>
                 )}
                 <SortableHead width={selectable ? 'w-16' : 'w-20 pl-5'} sortKey="numero_mapa" current={sortBy} dir={sortDir} onClickAction={toggleSort}>
-                  Mapa
+                  Nº
                 </SortableHead>
                 <SortableHead width="w-[28%] min-w-0" sortKey="cliente_nome" current={sortBy} dir={sortDir} onClickAction={toggleSort}>
                   Cliente

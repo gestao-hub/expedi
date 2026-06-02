@@ -116,7 +116,7 @@ export default async function LogisticaDetailPage({
               target="_blank"
               className={cn(buttonVariants({ variant: 'outline' }))}
             >
-              <Printer className="h-4 w-4 mr-1" /> Imprimir Mapa
+              <Printer className="h-4 w-4 mr-1" /> Imprimir Pedido
             </Link>
           </>
         }

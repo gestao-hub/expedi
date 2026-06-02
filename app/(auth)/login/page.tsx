@@ -10,7 +10,7 @@ export default function LoginPage() {
         <div className="flex justify-center">
           <AppLogo variant="dark" size={88} />
         </div>
-        <p className="text-sm text-muted-foreground">Mapa de Carregamento</p>
+        <p className="text-sm text-muted-foreground">Gestão de Pedidos</p>
       </CardHeader>
       <CardContent className="space-y-4 pb-8">
         <Suspense fallback={<div className="h-48 animate-pulse rounded-md bg-muted" />}>

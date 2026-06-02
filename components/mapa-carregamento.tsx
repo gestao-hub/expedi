@@ -69,9 +69,9 @@ export function MapaCarregamento({
           <AppLogo variant="dark" size={44} />
         )}
         <div className="text-right">
-          <h1 className="text-base font-bold tracking-tight">Mapa de Carregamento</h1>
+          <h1 className="text-base font-bold tracking-tight">Pedido</h1>
           <p className="text-xs text-muted-foreground">
-            Mapa Nº <span className="font-mono font-semibold">#{pedido.numero_mapa}</span>
+            Nº <span className="font-mono font-semibold">#{pedido.numero_mapa}</span>
             {pedido.documento_erp && (
               <>
                 {' '}· ERP <span className="font-mono">{pedido.documento_erp}</span>

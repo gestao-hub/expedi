@@ -18,8 +18,8 @@ const outfit = Outfit({
 });
 
 export const metadata: Metadata = {
-  title: 'Exped — Mapa de Carregamento',
-  description: 'Sistema de pedidos e logística — Franzoni Casa & Construção',
+  title: 'Exped',
+  description: 'Sistema de pedidos e logística',
 };
 
 // Injeta vars do servidor para o cliente (necessário em Turbopack que não
