@@ -38,7 +38,11 @@ export { SYNC_TABLES, TWO_WAY_TABLES };
 
 const execFileAsync = promisify(execFile);
 
-export const EPOCH = '1970-01-01T00:00:00Z';
+// Cursor inicial ANTES de qualquer dado real. Não pode ser '1970-01-01' (epoch):
+// linhas pré-migração ficam com updated_at = epoch e, com o filtro estritamente
+// maior (`> cursor`), seriam excluídas do 1º pull pra sempre. '0001-01-01' garante
+// que toda linha (inclusive as carimbadas em epoch) entre na sincronização inicial.
+export const EPOCH = '0001-01-01T00:00:00Z';
 export const SYNC_LIMIT = 500;
 /** Chave do cursor de auth.users (login offline) — fora do registro public. */
 export const AUTH_USERS_KEY = 'auth.users';
@@ -436,8 +440,8 @@ export function makePsqlDb(cfg) {
         cfg,
         "create table if not exists public._sync_cursors (" +
           "table_name text primary key, " +
-          "pull_at timestamptz not null default 'epoch', " +
-          "push_at timestamptz not null default 'epoch')",
+          "pull_at timestamptz not null default '0001-01-01T00:00:00Z', " +
+          "push_at timestamptz not null default '0001-01-01T00:00:00Z')",
       );
     },
 
@@ -445,8 +449,10 @@ export function makePsqlDb(cfg) {
       const row = await psqlJson(
         cfg,
         "select coalesce(jsonb_build_object(" +
-          "'pull_at', to_char(pull_at, 'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"'), " +
-          "'push_at', to_char(push_at, 'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"'))::text, '') " +
+          // AT TIME ZONE 'UTC': formata em UTC antes do "Z". Sem isso, to_char usa o
+          // timezone da sessão (ex.: UTC-3) mas rotula "Z" → cursor 3h errado.
+          "'pull_at', to_char(pull_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"'), " +
+          "'push_at', to_char(push_at AT TIME ZONE 'UTC', 'YYYY-MM-DD\"T\"HH24:MI:SS\"Z\"'))::text, '') " +
           `from public._sync_cursors where table_name = ${sqlStr(table)}`,
       );
       if (!row) return { pull_at: EPOCH, push_at: EPOCH };
