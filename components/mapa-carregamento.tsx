@@ -88,49 +88,42 @@ export function MapaCarregamento({
         </div>
       </header>
 
-      {/* Cliente */}
-      <Section title="Cliente">
-        <Grid cols={4}>
-          <KV label="Código"       value={pedido.cliente_codigo} />
-          <KV label="Nome"         value={pedido.cliente_nome} className="col-span-2 font-semibold" />
-          <KV label="CNPJ/CPF"     value={pedido.cliente_cnpj_cpf} />
-          <KV label="Emissão"      value={fmtDate(pedido.data_emissao)} />
-          <KV
-            label="Entrega"
-            value={
-              pedido.data_entrega_inicio && pedido.data_entrega_inicio !== pedido.data_entrega
-                ? `${fmtDate(pedido.data_entrega_inicio)} – ${fmtDate(pedido.data_entrega)}`
-                : fmtDate(pedido.data_entrega)
-            }
-          />
-          <KV
-            label="Vendedor"
-            value={vendedor?.full_name || vendedor?.email || '—'}
-            className="col-span-2"
-          />
-        </Grid>
-      </Section>
-
-      {/* Endereço */}
-      <Section title="Endereço de Entrega">
-        <Grid cols={6}>
-          <KV label="Endereço" value={pedido.cliente_endereco} className="col-span-3" />
-          <KV
-            label="Bairro"
-            value={pedido.cliente_bairro}
-            className="col-span-1 [&_.kv-value]:font-semibold [&_.kv-value]:text-brand-700"
-          />
-          <KV label="Cidade"  value={pedido.cliente_cidade} className="col-span-1" />
-          <KV label="UF"      value={pedido.cliente_uf} className="col-span-1" />
-          <KV label="CEP"     value={pedido.cliente_cep} className="col-span-2" />
-          <KV label="Tel"     value={pedido.cliente_telefone} className="col-span-2" />
-          <KV
-            label="Pagamento"
-            value={rotuloFormaPagamento(pedido.forma_pagamento, pedido.parcelas)}
-            className="col-span-2"
-          />
-        </Grid>
-      </Section>
+      {/* Cliente + Endereço lado a lado — economiza ~1/3 da altura na impressão.
+          A data de entrega não se repete aqui (já está em destaque no cabeçalho). */}
+      <div className="flex border-b border-black/15 print-avoid-break">
+        <div className="flex-1 px-4 py-2 border-r border-black/15">
+          <h3 className="text-[10px] font-bold uppercase tracking-widest text-franzoni-navy mb-1">Cliente</h3>
+          <Grid cols={2}>
+            <KV label="Nome"     value={pedido.cliente_nome} className="col-span-2 font-semibold" />
+            <KV label="CNPJ/CPF" value={pedido.cliente_cnpj_cpf} />
+            <KV label="Código"   value={pedido.cliente_codigo} />
+            <KV label="Emissão"  value={fmtDate(pedido.data_emissao)} />
+            <KV label="Vendedor" value={vendedor?.full_name || vendedor?.email || '—'} />
+          </Grid>
+        </div>
+        <div className="flex-1 px-4 py-2">
+          <h3 className="text-[10px] font-bold uppercase tracking-widest text-franzoni-navy mb-1">Endereço de Entrega</h3>
+          <Grid cols={2}>
+            <KV label="Endereço" value={pedido.cliente_endereco} className="col-span-2" />
+            <KV
+              label="Bairro"
+              value={pedido.cliente_bairro}
+              className="[&_.kv-value]:font-semibold [&_.kv-value]:text-brand-700"
+            />
+            <KV
+              label="Cidade/UF"
+              value={[pedido.cliente_cidade, pedido.cliente_uf].filter(Boolean).join(' / ') || '—'}
+            />
+            <KV label="CEP" value={pedido.cliente_cep} />
+            <KV label="Tel" value={pedido.cliente_telefone} />
+            <KV
+              label="Pagamento"
+              value={rotuloFormaPagamento(pedido.forma_pagamento, pedido.parcelas)}
+              className="col-span-2 [&_.kv-value]:font-semibold"
+            />
+          </Grid>
+        </div>
+      </div>
 
       {/* Pontos de Retirada */}
       {pontos.map((ponto, idx) => (
@@ -302,8 +295,12 @@ function Section({
   );
 }
 
-function Grid({ cols, children }: { cols: 3 | 4 | 6; children: React.ReactNode }) {
-  const cls = cols === 3 ? 'grid-cols-3' : cols === 4 ? 'grid-cols-2 md:grid-cols-4' : 'grid-cols-3 md:grid-cols-6';
+function Grid({ cols, children }: { cols: 2 | 3 | 4 | 6; children: React.ReactNode }) {
+  const cls =
+    cols === 2 ? 'grid-cols-2' :
+    cols === 3 ? 'grid-cols-3' :
+    cols === 4 ? 'grid-cols-2 md:grid-cols-4' :
+    'grid-cols-3 md:grid-cols-6';
   return <div className={`grid ${cls} gap-x-4 gap-y-1`}>{children}</div>;
 }
 
