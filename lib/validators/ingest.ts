@@ -38,6 +38,9 @@ export const ingestPedidoSchema = z.object({
   // Quando vier, tem precedência sobre o extraído do PDF (mais confiável).
   forma_pagamento: z.string().max(1000).nullable().optional(),
   parcelas: z.string().max(80).nullable().optional(),
+  // "Receber na entrega": o agente pode mandar explícito; senão é inferido do texto
+  // do pagamento ("ENTREGA A RECEBER") no endpoint de ingestão.
+  receber_na_entrega: z.boolean().optional(),
   observacoes: z.string().max(5000).nullable().optional(),
   pontos_retirada: z.array(pontoRetiradaSchema).max(5),
 });

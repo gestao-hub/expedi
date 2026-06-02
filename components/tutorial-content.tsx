@@ -75,9 +75,9 @@ const STEPS_BY_ROLE: Record<UserRole, Step[]> = {
     },
     {
       icon: CheckCircle2,
-      title: 'Atalho "Receber na entrega"',
+      title: 'Checkbox "Receber na entrega"',
       body:
-        'Na seção Pagamento, marque o checkbox "Receber na entrega" pra preencher automaticamente a forma de pagamento com "ENTREGA A RECEBER" (o padrão da casa). Desmarcar limpa o campo.',
+        'Na seção Pagamento, o checkbox "Receber na entrega" marca que o valor é recebido na entrega (ex.: o motorista cobra) — é o padrão da casa, já vem marcado. É INDEPENDENTE da forma de pagamento: você pode marcar "Receber na entrega" e ainda escolher a forma (ex.: receber na entrega em Dinheiro). No mapa impresso aparece em destaque pra logística.',
     },
     {
       icon: Send,
@@ -457,8 +457,9 @@ const GLOSSARY: GlossaryEntry[] = [
     term: 'Forma de Pagamento',
     def: (
       <>
-        Como o cliente vai pagar (ex.: "Entrega a Receber", "À Vista", parcelado). Aparece no
-        mapa pra a logística saber se precisa cobrar na entrega. Parcelas (ex.: "10x") vem junto.
+        O método (Crédito, Pix, Débito, Dinheiro, Boleto). Parcelas só no Crédito/Boleto. É
+        separado do "Receber na entrega" (que diz se o valor é cobrado na entrega). Aparece no
+        pedido impresso pra logística.
       </>
     ),
   },

@@ -9,6 +9,7 @@ type PedidoRow = {
   cliente_endereco: string | null; cliente_bairro: string | null; cliente_cidade: string | null;
   cliente_uf: string | null; cliente_cep: string | null; cliente_telefone: string | null;
   cliente_endereco_id: string | null; forma_pagamento: FormaPagamentoDb | null; parcelas: number | null;
+  receber_na_entrega: boolean;
   valor_total: number; observacoes: string | null; storage_pdf_path: string | null;
 };
 type ItemRow = {
@@ -17,7 +18,7 @@ type ItemRow = {
   saldo_estoque: number | null; ordem: number | null;
 };
 type PontoRow = {
-  id: string; tipo: 'loja' | 'deposito'; empresa_nome: string; endereco: string | null; ordem: number | null;
+  id: string; tipo: 'loja' | 'deposito' | 'entrega'; empresa_nome: string; endereco: string | null; ordem: number | null;
   itens: ItemRow[];
 };
 
@@ -39,6 +40,7 @@ export function pedidoRowsToFormInput(pedido: PedidoRow, pontos: PontoRow[]): Pe
     cliente_endereco_id: pedido.cliente_endereco_id,
     forma_pagamento: pedido.forma_pagamento,
     parcelas: pedido.parcelas,
+    receber_na_entrega: pedido.receber_na_entrega,
     valor_total: pedido.valor_total,
     observacoes: pedido.observacoes,
     storage_pdf_path: pedido.storage_pdf_path,

@@ -917,6 +917,7 @@ export type Database = {
           numero_mapa: number
           observacoes: string | null
           parcelas: number | null
+          receber_na_entrega: boolean
           status: Database["public"]["Enums"]["pedido_status"]
           storage_pdf_path: string | null
           updated_at: string
@@ -955,6 +956,7 @@ export type Database = {
           numero_mapa?: number
           observacoes?: string | null
           parcelas?: number | null
+          receber_na_entrega?: boolean
           status?: Database["public"]["Enums"]["pedido_status"]
           storage_pdf_path?: string | null
           updated_at?: string
@@ -993,6 +995,7 @@ export type Database = {
           numero_mapa?: number
           observacoes?: string | null
           parcelas?: number | null
+          receber_na_entrega?: boolean
           status?: Database["public"]["Enums"]["pedido_status"]
           storage_pdf_path?: string | null
           updated_at?: string

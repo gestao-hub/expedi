@@ -1,6 +1,16 @@
 // lib/parser/__tests__/forma-pagamento.test.ts
 import { describe, it, expect } from 'vitest';
-import { mapFormaPagamento, parseParcelas, rotuloFormaPagamento } from '../forma-pagamento';
+import { mapFormaPagamento, parseParcelas, rotuloFormaPagamento, isReceberNaEntrega } from '../forma-pagamento';
+
+describe('isReceberNaEntrega', () => {
+  it('detecta "a receber"/"entrega a receber" no texto do Hiper', () => {
+    expect(isReceberNaEntrega('ENTREGA A RECEBER 10x')).toBe(true);
+    expect(isReceberNaEntrega('a receber')).toBe(true);
+    expect(isReceberNaEntrega('Dinheiro')).toBe(false);
+    expect(isReceberNaEntrega('Pix')).toBe(false);
+    expect(isReceberNaEntrega(null)).toBe(false);
+  });
+});
 
 describe('mapFormaPagamento', () => {
   it('mapeia textos do Hiper para o enum', () => {

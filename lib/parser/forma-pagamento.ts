@@ -37,3 +37,10 @@ export function rotuloFormaPagamento(forma: FormaPagamento | null | undefined, p
   const base = ROTULOS[forma];
   return FORMAS_COM_PARCELAS.has(forma) && parcelas && parcelas > 1 ? `${base} ${parcelas}x` : base;
 }
+
+/** Detecta "receber na entrega" no texto livre do Hiper/PDF ("ENTREGA A RECEBER", "a receber"). */
+export function isReceberNaEntrega(raw: string | null | undefined): boolean {
+  if (!raw) return false;
+  const s = raw.toLowerCase();
+  return s.includes('a receber') || s.includes('entrega a receber');
+}

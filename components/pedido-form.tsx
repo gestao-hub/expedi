@@ -445,6 +445,11 @@ export function PedidoForm({
                 )}
               />
             </Field>
+            {/* Independente da forma: o valor é recebido na entrega (motorista cobra). */}
+            <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
+              <input type="checkbox" {...register('receber_na_entrega')} className="h-4 w-4" />
+              Receber na entrega
+            </label>
             <div className="grid grid-cols-2 gap-4">
               <Field label="Parcelas">
                 <Controller

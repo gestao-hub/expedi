@@ -219,6 +219,7 @@ export async function atualizarPedidoAction(
       cliente_endereco_id: d.cliente_endereco_id ?? null,
       forma_pagamento: d.forma_pagamento ?? null,
       parcelas: d.parcelas ?? null,
+      receber_na_entrega: d.receber_na_entrega ?? false,
       valor_total: d.valor_total,
       observacoes: d.observacoes ?? null,
       status,

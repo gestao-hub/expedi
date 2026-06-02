@@ -118,8 +118,12 @@ export function MapaCarregamento({
             <KV label="Tel" value={pedido.cliente_telefone} />
             <KV
               label="Pagamento"
-              value={rotuloFormaPagamento(pedido.forma_pagamento, pedido.parcelas)}
-              className="col-span-2 [&_.kv-value]:font-semibold"
+              value={
+                pedido.receber_na_entrega
+                  ? `A RECEBER NA ENTREGA${pedido.forma_pagamento ? ` · ${rotuloFormaPagamento(pedido.forma_pagamento, pedido.parcelas)}` : ''}`
+                  : rotuloFormaPagamento(pedido.forma_pagamento, pedido.parcelas)
+              }
+              className={`col-span-2 [&_.kv-value]:font-semibold ${pedido.receber_na_entrega ? '[&_.kv-value]:text-brand-700' : ''}`}
             />
           </Grid>
         </div>

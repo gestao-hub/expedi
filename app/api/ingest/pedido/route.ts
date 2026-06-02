@@ -4,7 +4,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { ingestPedidoSchema } from '@/lib/validators/ingest';
 import { pedidoFormSchema, type PedidoFormInput } from '@/lib/validators/pedido';
 import { extrairPagamentoDoPdfText } from '@/lib/parser/extrair-pagamento';
-import { mapFormaPagamento, parseParcelas } from '@/lib/parser/forma-pagamento';
+import { mapFormaPagamento, parseParcelas, isReceberNaEntrega } from '@/lib/parser/forma-pagamento';
 import { inserirPedido } from '@/lib/pedidos/inserir';
 
 export const runtime = 'nodejs';
@@ -152,6 +152,8 @@ export async function POST(req: NextRequest) {
     // Texto livre (agente ou PDF) → enum/int via helpers.
     forma_pagamento: mapFormaPagamento(d.forma_pagamento ?? forma_pagamento),
     parcelas: parseParcelas(d.parcelas ?? parcelas),
+    // "Receber na entrega": explícito do agente, ou inferido do texto ("ENTREGA A RECEBER").
+    receber_na_entrega: d.receber_na_entrega ?? isReceberNaEntrega(d.forma_pagamento ?? forma_pagamento),
     valor_total: d.valor_total,
     observacoes: d.observacoes ?? null,
     storage_pdf_path,
