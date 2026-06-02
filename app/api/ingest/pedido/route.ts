@@ -43,23 +43,35 @@ export async function POST(req: NextRequest) {
     .update({ last_seen_at: new Date().toISOString() })
     .eq('id', dispositivo.id);
 
-  // 2) Multipart: PDF (opcional) + dados (JSON)
-  let form: FormData;
-  try {
-    form = await req.formData();
-  } catch {
-    return NextResponse.json({ error: 'Esperado multipart/form-data' }, { status: 400 });
-  }
-  const file = form.get('file');
-  const dadosRaw = form.get('dados');
-  if (typeof dadosRaw !== 'string') {
-    return NextResponse.json({ error: 'Campo "dados" (JSON) ausente' }, { status: 400 });
-  }
+  // 2) Aceita DOIS formatos (compat. entre versões do agente):
+  //    - application/json: o corpo É o objeto de dados (agente sem PDF).
+  //    - multipart/form-data: campo "dados" (JSON) + "file" (PDF opcional).
+  const contentType = req.headers.get('content-type') ?? '';
   let dadosJson: unknown;
-  try {
-    dadosJson = JSON.parse(dadosRaw);
-  } catch {
-    return NextResponse.json({ error: '"dados" não é JSON válido' }, { status: 400 });
+  let file: FormDataEntryValue | null = null;
+  if (contentType.includes('application/json')) {
+    try {
+      dadosJson = await req.json();
+    } catch {
+      return NextResponse.json({ error: 'JSON inválido' }, { status: 400 });
+    }
+  } else {
+    let form: FormData;
+    try {
+      form = await req.formData();
+    } catch {
+      return NextResponse.json({ error: 'Esperado application/json ou multipart/form-data' }, { status: 400 });
+    }
+    file = form.get('file');
+    const dadosRaw = form.get('dados');
+    if (typeof dadosRaw !== 'string') {
+      return NextResponse.json({ error: 'Campo "dados" (JSON) ausente' }, { status: 400 });
+    }
+    try {
+      dadosJson = JSON.parse(dadosRaw);
+    } catch {
+      return NextResponse.json({ error: '"dados" não é JSON válido' }, { status: 400 });
+    }
   }
   const dados = ingestPedidoSchema.safeParse(dadosJson);
   if (!dados.success) {
