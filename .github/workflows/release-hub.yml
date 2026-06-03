@@ -21,8 +21,8 @@ jobs:
       - name: Build app (standalone)
         run: npm run build
         env:
-          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          SUPABASE_URL: http://127.0.0.1:54320
+          SUPABASE_ANON_KEY: build-placeholder-anon
       - name: Publish release
         run: node scripts/release-hub.mjs
         env:
