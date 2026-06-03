@@ -70,6 +70,7 @@ function makeHttpPull({ apiBase, deviceToken, fetchImpl }) {
       method: 'POST',
       headers: { 'content-type': 'application/json', authorization: `Bearer ${deviceToken}` },
       body: JSON.stringify({ cursors }),
+      signal: AbortSignal.timeout(30000),
     });
     if (!res.ok) {
       const err = new Error(`pull HTTP ${res.status}`);
@@ -86,6 +87,7 @@ function makeHttpPush({ apiBase, deviceToken, fetchImpl }) {
       method: 'POST',
       headers: { 'content-type': 'application/json', authorization: `Bearer ${deviceToken}` },
       body: JSON.stringify({ rows }),
+      signal: AbortSignal.timeout(30000),
     });
     if (!res.ok) {
       const err = new Error(`push HTTP ${res.status}`);
@@ -375,7 +377,7 @@ async function psqlCmd(cfg, sql) {
   const { stdout } = await execFileAsync(
     'psql',
     [...psqlArgs(cfg), '-v', 'ON_ERROR_STOP=1', '-tAc', sql],
-    { env: PSQL_ENV, maxBuffer: 1024 * 1024 * 32 },
+    { env: PSQL_ENV, maxBuffer: 1024 * 1024 * 256 },
   );
   return stdout;
 }
@@ -409,7 +411,7 @@ async function psqlSyncWrite(cfg, sql) {
     await execFileAsync(
       'psql',
       [...psqlArgs(cfg), '-v', 'ON_ERROR_STOP=1', '-f', tmpFile],
-      { env: PSQL_ENV, maxBuffer: 1024 * 1024 * 32 },
+      { env: PSQL_ENV, maxBuffer: 1024 * 1024 * 256 },
     );
   } finally {
     if (fh) await fh.close().catch(() => {});

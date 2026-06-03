@@ -129,6 +129,7 @@ export function PedidosList({
   const [itensParciais, setItensParciais] = useState<Record<string, ParcialItem[]>>({});
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
+  const [searchInput, setSearchInput] = useState('');
   const [status, setStatus] = useState<PedidoStatus | 'todos'>(initialStatus ?? 'todos');
   const [dateRange, setDateRange] = useState<DateRangeKey>('todos');
   const [customFrom, setCustomFrom] = useState<string | null>(null);
@@ -193,6 +194,12 @@ export function PedidosList({
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setPage(1);
   }, [status, search, sortBy, sortDir, dateRange, customFrom, customTo]);
+
+  // Debounce da busca: digita em searchInput; aplica em search após 300ms (evita 1 query por tecla).
+  useEffect(() => {
+    const id = setTimeout(() => setSearch(searchInput), 300);
+    return () => clearTimeout(id);
+  }, [searchInput]);
 
   // Busca itens dos pedidos parcialmente entregues (mostra inline na linha)
   useEffect(() => {
@@ -303,8 +310,8 @@ export function PedidosList({
               <Input
                 placeholder="Buscar por cliente, documento ou bairro…"
                 className="pl-9 bg-white/60 dark:bg-white/5"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                value={searchInput}
+                onChange={(e) => setSearchInput(e.target.value)}
               />
             </div>
             {!hideStatusFilter && (
