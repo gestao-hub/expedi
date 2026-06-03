@@ -1149,6 +1149,18 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_top_bairros: {
+        Args: { p_limit: number }
+        Returns: { cliente_bairro: string; pedidos: number }[]
+      }
+      admin_top_clientes: {
+        Args: { p_limit: number }
+        Returns: { cliente_nome: string; total: number; pedidos: number }[]
+      }
+      historico_kpis: {
+        Args: never
+        Returns: { pedidos_finalizados: number; valor_faturado: number; clientes_unicos: number }[]
+      }
       current_empresa_id: { Args: never; Returns: string }
       current_user_role: {
         Args: never

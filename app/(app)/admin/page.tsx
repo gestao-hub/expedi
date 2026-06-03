@@ -54,15 +54,11 @@ export default async function AdminDashboard() {
       .select('created_at')
       .gte('created_at', subDays(new Date(), 30).toISOString()),
 
-    // Top clientes (finalizados, valor)
-    supabase
-      .from('pedidos')
-      .select('cliente_nome, valor_total')
-      .eq('status', 'finalizado')
-      .limit(10000),
+    // Top clientes (finalizados, valor) — agregado no banco
+    supabase.rpc('admin_top_clientes', { p_limit: 10 }),
 
-    // Top bairros (todos)
-    supabase.from('pedidos').select('cliente_bairro').limit(10000),
+    // Top bairros (todos) — agregado no banco
+    supabase.rpc('admin_top_bairros', { p_limit: 10 }),
 
     // Eventos status_change pra finalizado
     supabase
@@ -85,28 +81,18 @@ export default async function AdminDashboard() {
   }
   const seriePorDia = Array.from(porDia, ([dia, pedidos]) => ({ dia, pedidos }));
 
-  // 2. Top clientes
-  const porCliente = new Map<string, { valor: number; pedidos: number }>();
-  for (const p of (finalizados ?? []) as { cliente_nome: string; valor_total: number }[]) {
-    const k = (p.cliente_nome || '').trim();
-    if (!k) continue;
-    const cur = porCliente.get(k) ?? { valor: 0, pedidos: 0 };
-    porCliente.set(k, { valor: cur.valor + Number(p.valor_total ?? 0), pedidos: cur.pedidos + 1 });
-  }
-  const topClientes = Array.from(porCliente, ([nome, v]) => ({ nome, ...v }))
-    .sort((a, b) => b.valor - a.valor)
-    .slice(0, 10);
+  // 2. Top clientes (já agregado pela RPC admin_top_clientes)
+  const topClientes = (finalizados ?? []).map((c) => ({
+    nome: c.cliente_nome,
+    valor: Number(c.total ?? 0),
+    pedidos: Number(c.pedidos ?? 0),
+  }));
 
-  // 3. Top bairros
-  const porBairro = new Map<string, number>();
-  for (const p of (todosPedidos ?? []) as { cliente_bairro: string | null }[]) {
-    const k = (p.cliente_bairro || '').trim();
-    if (!k) continue;
-    porBairro.set(k, (porBairro.get(k) ?? 0) + 1);
-  }
-  const topBairros = Array.from(porBairro, ([bairro, pedidos]) => ({ bairro, pedidos }))
-    .sort((a, b) => b.pedidos - a.pedidos)
-    .slice(0, 10);
+  // 3. Top bairros (já agregado pela RPC admin_top_bairros)
+  const topBairros = (todosPedidos ?? []).map((b) => ({
+    bairro: b.cliente_bairro,
+    pedidos: Number(b.pedidos ?? 0),
+  }));
 
   // 4. Tempo médio "pendente → finalizado" (em horas)
   // Pega eventos com payload.to='finalizado' e os created_at do pedido

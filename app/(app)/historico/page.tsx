@@ -11,24 +11,11 @@ export const dynamic = 'force-dynamic';
 export default async function HistoricoPage() {
   const supabase = await createClient();
 
-  const { count: total } = await supabase
-    .from('pedidos')
-    .select('id', { count: 'exact', head: true })
-    .eq('status', 'finalizado');
-
-  const { data: valores } = await supabase
-    .from('pedidos')
-    .select('valor_total, cliente_nome')
-    .eq('status', 'finalizado')
-    .limit(10000);
-
-  const valorTotal = (valores ?? []).reduce(
-    (s: number, p: { valor_total: number }) => s + Number(p.valor_total ?? 0),
-    0,
-  );
-  const clientesUnicos = new Set(
-    (valores ?? []).map((p: { cliente_nome: string }) => p.cliente_nome),
-  ).size;
+  // KPIs agregados no banco (RPC) — evita puxar até 10k linhas e somar em JS (que truncava).
+  const { data: kpi } = await supabase.rpc('historico_kpis').single();
+  const total = Number(kpi?.pedidos_finalizados ?? 0);
+  const valorTotal = Number(kpi?.valor_faturado ?? 0);
+  const clientesUnicos = Number(kpi?.clientes_unicos ?? 0);
 
   return (
     <div className="flex flex-col flex-1 min-h-0 gap-4">
