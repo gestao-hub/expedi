@@ -36,7 +36,7 @@ import { Supervisor } from './supervisor.mjs';
 import { waitForHttp, waitForTcp } from './health.mjs';
 import { startStorage } from './storage-local.mjs';
 import { loadConfig } from './config.mjs';
-import { bootstrap } from './bootstrap.mjs';
+import { bootstrap, applyPendingMigrations } from './bootstrap.mjs';
 import { checkAndUpdate } from './updater.mjs';
 import { makeKeys } from './keys.mjs';
 import { exe } from './platform.mjs';
@@ -387,6 +387,8 @@ export async function startMaestro(cfg, opts = {}) {
         restart,
         health,
         logger,
+        migrate: async (releaseDir) =>
+          applyPendingMigrations(cfg, cfg.paths.db, path.join(releaseDir, 'supabase', 'migrations')),
       }).catch((e) => logger.error(`updater: ${e?.message}`));
     }, intervalMs);
     updateTimer.unref?.();
