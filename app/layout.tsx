@@ -3,6 +3,7 @@ import { Inter, Outfit } from 'next/font/google';
 import { Toaster } from '@/components/ui/sonner';
 import { ThemeProvider } from '@/components/providers/theme-provider';
 import { ConfirmProvider } from '@/components/providers/confirm-provider';
+import { supabaseUrl, supabaseAnonKey } from '@/lib/supabase/env';
 import './globals.css';
 
 const inter = Inter({
@@ -22,14 +23,14 @@ export const metadata: Metadata = {
   description: 'Sistema de pedidos e logística',
 };
 
-// Injeta vars do servidor para o cliente (necessário em Turbopack que não
-// bake-in NEXT_PUBLIC_* nos client chunks — o servidor usa process.env em runtime).
-const supabaseConfig = {
-  url: process.env.NEXT_PUBLIC_SUPABASE_URL ?? '',
-  anonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '',
-};
-
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  // Avaliado por-request (runtime), não no módulo carregado, para que o resolvedor
+  // leia window.__SUPABASE_URL__ / variáveis de env injetadas em runtime.
+  const supabaseConfig = {
+    url: supabaseUrl(),
+    anonKey: supabaseAnonKey(),
+  };
+
   return (
     <html
       lang="pt-BR"
