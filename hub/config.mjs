@@ -91,6 +91,7 @@ export function loadConfig(overrides = {}) {
   if (process.env.EXPED_PG_HOST) paths.pgHost = process.env.EXPED_PG_HOST;
   if (process.env.EXPED_DB) paths.db = process.env.EXPED_DB;
   if (process.env.EXPED_DB_USER) paths.user = process.env.EXPED_DB_USER;
+  if (process.env.EXPED_CERT_DIR) paths.certDir = process.env.EXPED_CERT_DIR;
 
   if (process.env.EXPED_MANIFEST_URL) env.manifestUrl = process.env.EXPED_MANIFEST_URL;
   if (process.env.EXPED_VERSION) env.version = process.env.EXPED_VERSION;

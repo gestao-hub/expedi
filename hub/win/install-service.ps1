@@ -35,7 +35,8 @@
 param(
     [string]$Root        = 'C:\Exped',
     [string]$ServiceName = 'ExpedHub',
-    [string]$ConfigPath  = 'C:\Exped\config.json'
+    [string]$ConfigPath  = 'C:\Exped\config.json',
+    [string]$ServerIp    = ''
 )
 
 $ErrorActionPreference = 'Stop'
@@ -46,6 +47,8 @@ $Maestro = Join-Path $Root 'hub\maestro.mjs'
 $LogDir  = Join-Path $Root 'logs'
 $PgBin   = Join-Path $Root 'bin\pgsql\bin'
 $NodeDir = Join-Path $Root 'bin\node'
+$Mkcert  = Join-Path $Root 'bin\mkcert.exe'
+$CertDir = Join-Path $Root 'cert'
 
 function Write-Step($msg) { Write-Host "==> $msg" -ForegroundColor Cyan }
 
@@ -73,6 +76,8 @@ $envMap['PATH'] = "$PgBin;$NodeDir;$env:PATH"
 # EXPED_PG_BIN: onde estao initdb.exe/pg_ctl.exe/psql.exe no Windows.
 # (hub/maestro.mjs usa essa var; default dele e um path Linux - obrigatorio aqui.)
 $envMap['EXPED_PG_BIN'] = $PgBin
+# certDir: onde o frontdoor le server.crt/server.key (gerados pelo mkcert abaixo).
+$envMap['EXPED_CERT_DIR'] = $CertDir
 
 if (Test-Path $ConfigPath) {
     Write-Step "Lendo config de $ConfigPath"
@@ -174,6 +179,28 @@ $envMap.GetEnumerator() | ForEach-Object {
 Write-Step "Configurando firewall (inbound TCP 443,$appPort,$gatewayPort)"
 netsh advfirewall firewall delete rule name="ExpedHub" | Out-Null
 netsh advfirewall firewall add rule name="ExpedHub" dir=in action=allow protocol=TCP localport="443,$appPort,$gatewayPort" | Out-Null
+
+# ---------------------------------------------------------------------------
+# 4. HTTPS - CA local (mkcert) + cert do servidor (SAN com o IP da LAN)
+# ---------------------------------------------------------------------------
+# O porteiro (frontdoor) fala https com este cert. A notificacao do navegador
+# exige contexto seguro (https). Distribua C:\Exped\rootCA-Exped.crt pras maquinas.
+New-Item -ItemType Directory -Force -Path $CertDir | Out-Null
+if (Test-Path $Mkcert) {
+    if (-not $ServerIp) {
+        $ServerIp = (Get-NetIPAddress -AddressFamily IPv4 |
+            Where-Object { $_.IPAddress -notlike '169.254*' -and $_.IPAddress -ne '127.0.0.1' } |
+            Select-Object -First 1).IPAddress
+    }
+    Write-Step "Gerando CA + cert HTTPS (mkcert) para $ServerIp"
+    & $Mkcert -install
+    & $Mkcert -cert-file (Join-Path $CertDir 'server.crt') -key-file (Join-Path $CertDir 'server.key') $ServerIp 'localhost' '127.0.0.1'
+    $caRoot = (& $Mkcert -CAROOT).Trim()
+    Copy-Item (Join-Path $caRoot 'rootCA.pem') (Join-Path $Root 'rootCA-Exped.crt') -Force
+    Write-Host "    HTTPS pronto. Instale $Root\rootCA-Exped.crt nas maquinas (Autoridade Raiz Confiavel)." -ForegroundColor Green
+} else {
+    Write-Host "    AVISO: bin\mkcert.exe ausente - hub sobe em HTTP (sem notificacao na LAN)." -ForegroundColor Yellow
+}
 
 # ---------------------------------------------------------------------------
 # 4. Iniciar o servico
