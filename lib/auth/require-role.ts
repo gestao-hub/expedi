@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
+import { getAuthUserCached, getProfileCached } from '@/lib/auth/cached';
 import type { Profile, UserRole } from '@/lib/types';
 
 /**
@@ -14,17 +14,10 @@ import type { Profile, UserRole } from '@/lib/types';
  * Retorna o profile pra que a page possa reusar (evita 2ª query).
  */
 export async function requireRole(allowed: UserRole[]): Promise<Profile> {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getAuthUserCached();
   if (!user) redirect('/login');
 
-  const { data: profile } = await supabase
-    .from('profiles')
-    .select('*')
-    .eq('id', user.id)
-    .single();
+  const profile = await getProfileCached(user.id);
 
   if (!profile) {
     // session válida mas profile sumiu — força reauth
