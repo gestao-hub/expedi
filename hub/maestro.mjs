@@ -203,6 +203,24 @@ function gatewaySupervisor(cfg, logDir) {
   });
 }
 
+function frontdoorSupervisor(cfg, logDir) {
+  return new Supervisor({
+    name: 'frontdoor',
+    cmd: process.execPath,
+    args: [path.join(ROOT, 'hub', 'frontdoor.mjs')],
+    cwd: ROOT,
+    env: {
+      FRONTDOOR_PORT: String(cfg.ports.frontdoor),
+      APP_PORT: String(cfg.ports.app),
+      GATEWAY_PORT: String(cfg.ports.gateway),
+      EVENTS_PORT: String(cfg.ports.events),
+      CERT_DIR: cfg.paths.certDir || '',
+    },
+    logPath: path.join(logDir, 'frontdoor.log'),
+    backoffMs: 1500,
+  });
+}
+
 function appSupervisor(cfg, logDir, keys) {
   const gatewayUrl = `http://127.0.0.1:${cfg.ports.gateway}`;
   const releasesDir = cfg.paths.releasesDir || path.join(ROOT, 'releases');
@@ -338,6 +356,11 @@ export async function startMaestro(cfg, opts = {}) {
     supervisors.app = appSupervisor(cfg, logDir, keys).start();
     await waitForHttp(`http://127.0.0.1:${cfg.ports.app}/login`, 60000);
     logger.info('app respondeu em /login');
+
+    // Porteiro de rede (LAN): única peça que escuta em 0.0.0.0. Depois do app
+    // (proxia app+gateway; /avisos→events vem na Fase C). HTTPS auto se há cert.
+    logger.info(`subindo frontdoor :${cfg.ports.frontdoor}`);
+    supervisors.frontdoor = frontdoorSupervisor(cfg, logDir).start();
   }
 
   // 4.5 Cliente de sync (sub-projeto 3) -------------------------------------

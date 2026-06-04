@@ -11,6 +11,8 @@ const DEFAULTS = {
     gateway: 54320,
     storage: 5402,
     app: 3000,
+    frontdoor: 443, // porteiro de rede (LAN): única peça em 0.0.0.0
+    events: 54350, // SSE do tempo-real (127.0.0.1)
   },
   paths: {
     // pgData: DIRETORIO DE DADOS do cluster (pg_ctl -D <pgData>).
@@ -21,6 +23,7 @@ const DEFAULTS = {
     pgHost: '/tmp/exped-pg',
     db: 'exped',
     user: 'postgres',
+    certDir: '/tmp/exped-cert', // Windows: C:\Exped\cert (server.key/server.crt do mkcert)
     migrationsDir: 'supabase/migrations',
     sqlDir: 'scripts/local-stack',
     authBin: 'scripts/local-stack/bin/auth',
@@ -79,6 +82,8 @@ export function loadConfig(overrides = {}) {
   if (process.env.EXPED_GATEWAY_PORT) ports.gateway = Number(process.env.EXPED_GATEWAY_PORT);
   if (process.env.EXPED_STORAGE_PORT) ports.storage = Number(process.env.EXPED_STORAGE_PORT);
   if (process.env.EXPED_APP_PORT) ports.app = Number(process.env.EXPED_APP_PORT);
+  if (process.env.EXPED_FRONTDOOR_PORT) ports.frontdoor = Number(process.env.EXPED_FRONTDOOR_PORT);
+  if (process.env.EXPED_EVENTS_PORT) ports.events = Number(process.env.EXPED_EVENTS_PORT);
 
   // pgData (diretorio de dados) e pgHost (host de conexao) sao independentes.
   // Se EXPED_PG_DATA nao vier, pgData mantem o default — NUNCA herda EXPED_PG_HOST.
