@@ -22,48 +22,29 @@ type Admin = ReturnType<typeof createAdminClient>;
  * (REST/pool não mantém sessão entre requests).
  */
 
-// Resolve a lista de ids da empresa pra cada "nível pai" — usado pra escopar filhas.
-async function pedidoIdsDaEmpresa(supabase: Admin, empresaId: string): Promise<string[]> {
-  const { data } = await supabase.from('pedidos').select('id').eq('empresa_id', empresaId);
-  return (data ?? []).map((r) => r.id as string);
-}
-async function pontoIdsDaEmpresa(supabase: Admin, empresaId: string): Promise<string[]> {
-  const pedidoIds = await pedidoIdsDaEmpresa(supabase, empresaId);
-  if (pedidoIds.length === 0) return [];
-  const { data } = await supabase
-    .from('pedido_pontos_retirada')
-    .select('id')
-    .in('pedido_id', pedidoIds);
-  return (data ?? []).map((r) => r.id as string);
-}
-async function osIdsDaEmpresa(supabase: Admin, empresaId: string): Promise<string[]> {
-  const { data } = await supabase.from('ordens_servico').select('id').eq('empresa_id', empresaId);
-  return (data ?? []).map((r) => r.id as string);
-}
-
 export function makeSupabaseSyncDb(supabase: Admin): SyncDb {
   return {
     async selectChanges(table, empresaId, cursor, limit) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      let q = (supabase as any).from(table).select('*').gt('updated_at', cursor);
-
-      if (hasDirectEmpresaId(table)) {
-        q = q.eq(scopeColumn(table), empresaId);
-      } else if (table === 'pedido_pontos_retirada') {
-        const ids = await pedidoIdsDaEmpresa(supabase, empresaId);
-        if (ids.length === 0) return [];
-        q = q.in('pedido_id', ids);
-      } else if (table === 'pedido_itens') {
-        const ids = await pontoIdsDaEmpresa(supabase, empresaId);
-        if (ids.length === 0) return [];
-        q = q.in('ponto_retirada_id', ids);
-      } else if (table === 'os_itens' || table === 'os_servicos') {
-        const ids = await osIdsDaEmpresa(supabase, empresaId);
-        if (ids.length === 0) return [];
-        q = q.in('os_id', ids);
+      // Filhas (sem empresa_id direto): escopo via RPC com JOIN no banco — evita carregar
+      // todos os IDs da empresa em memória + .in() gigante.
+      if (!hasDirectEmpresaId(table)) {
+        const { data, error } = await supabase.rpc('sync_children_changed', {
+          p_table: table,
+          p_empresa: empresaId,
+          p_cursor: cursor,
+          p_limit: limit,
+        });
+        if (error) throw error;
+        return (data ?? []) as unknown as Row[];
       }
-
-      const { data, error } = await q.order('updated_at', { ascending: true }).limit(limit);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const { data, error } = await (supabase as any)
+        .from(table)
+        .select('*')
+        .gt('updated_at', cursor)
+        .eq(scopeColumn(table), empresaId)
+        .order('updated_at', { ascending: true })
+        .limit(limit);
       if (error) throw error;
       return (data ?? []) as Row[];
     },
@@ -109,6 +90,39 @@ export function makeSupabaseSyncDb(supabase: Admin): SyncDb {
       });
       if (error) throw error;
       return data === true;
+    },
+
+    async parentsInEmpresa(parentTable, parentIds, empresaId) {
+      const set = new Set<string>();
+      const ids = [...new Set(parentIds.map((x) => x as string).filter(Boolean))];
+      if (ids.length === 0) return set;
+      const { data, error } = await supabase.rpc('sync_parents_in_empresa', {
+        p_table: parentTable,
+        p_ids: ids,
+        p_empresa: empresaId,
+      });
+      if (error) throw error;
+      for (const id of (data ?? []) as string[]) set.add(String(id));
+      return set;
+    },
+
+    async findCanonicalMany(table, empresaId, pks) {
+      const map = new Map<string, Row>();
+      const ids = [...new Set(pks.map((x) => x as string).filter(Boolean))];
+      if (ids.length === 0) return map;
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      let q = (supabase as any).from(table.name).select('*').in(table.pk, ids);
+      if (hasDirectEmpresaId(table.name)) q = q.eq(scopeColumn(table.name), empresaId);
+      const { data, error } = await q;
+      if (error) throw error;
+      let rows = (data ?? []) as Row[];
+      if (!hasDirectEmpresaId(table.name) && table.parent) {
+        const parentIds = rows.map((r) => r[table.parent!.fk]);
+        const valid = await this.parentsInEmpresa(table.parent.table, parentIds, empresaId);
+        rows = rows.filter((r) => valid.has(String(r[table.parent!.fk])));
+      }
+      for (const r of rows) map.set(String(r[table.pk]), r);
+      return map;
     },
 
     async upsertRaw(table, row) {

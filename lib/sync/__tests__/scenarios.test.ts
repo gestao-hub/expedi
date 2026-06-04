@@ -70,6 +70,21 @@ function makeCloud(seed: Record<string, Row[]> = {}) {
     async parentBelongsToEmpresa(parentTable, parentId, empresaId) {
       return parentEmpresaOf(parentTable, parentId) === empresaId;
     },
+    async findCanonicalMany(table: SyncTable, empresaId, pks) {
+      const map = new Map<string, Row>();
+      for (const pk of pks) {
+        const f = await this.findCanonical(table, empresaId, pk);
+        if (f) map.set(String(pk), f);
+      }
+      return map;
+    },
+    async parentsInEmpresa(parentTable, parentIds, empresaId) {
+      const set = new Set<string>();
+      for (const id of parentIds) {
+        if (await this.parentBelongsToEmpresa(parentTable, id, empresaId)) set.add(String(id));
+      }
+      return set;
+    },
     async upsertRaw(table, row) {
       store[table] = store[table] ?? [];
       const idx = store[table].findIndex((r) => r.id === row.id);

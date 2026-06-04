@@ -36,6 +36,10 @@ export type SyncDb = {
   findCanonicalGlobal(table: SyncTable, pk: unknown): Promise<Row | null>;
   /** Verifica se um id de pai pertence à empresa (validação de filhas no push). */
   parentBelongsToEmpresa(parentTable: string, parentId: unknown, empresaId: string): Promise<boolean>;
+  /** Canônicas por PK (em lote), escopadas à empresa. Mesmo critério do findCanonical. */
+  findCanonicalMany(table: SyncTable, empresaId: string, pks: unknown[]): Promise<Map<string, Row>>;
+  /** Subconjunto de parentIds que pertencem à empresa (checagem de pais em lote). */
+  parentsInEmpresa(parentTable: string, parentIds: unknown[], empresaId: string): Promise<Set<string>>;
   /**
    * Grava (insert/update) a linha exatamente como passada (sem trigger sobrescrever).
    * Retorna `null` quando o ON CONFLICT não afetou linha alguma (guarda de empresa no

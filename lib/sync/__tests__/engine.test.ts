@@ -50,6 +50,21 @@ function makeDb(seed: Record<string, Row[]> = {}) {
     async parentBelongsToEmpresa(parentTable, parentId, empresaId) {
       return parentEmpresa[parentTable]?.[String(parentId)] === empresaId;
     },
+    async findCanonicalMany(table: SyncTable, empresaId, pks) {
+      const map = new Map<string, Row>();
+      for (const pk of pks) {
+        const found = await this.findCanonical(table, empresaId, pk);
+        if (found) map.set(String(pk), found);
+      }
+      return map;
+    },
+    async parentsInEmpresa(parentTable, parentIds, empresaId) {
+      const set = new Set<string>();
+      for (const id of parentIds) {
+        if (parentEmpresa[parentTable]?.[String(id)] === empresaId) set.add(String(id));
+      }
+      return set;
+    },
     async upsertRaw(table, row) {
       store[table] = store[table] ?? [];
       const idx = store[table].findIndex((r) => r.id === row.id);
