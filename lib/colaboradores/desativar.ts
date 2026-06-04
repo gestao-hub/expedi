@@ -23,7 +23,12 @@ export async function desativarColaborador(
   const { error: e1 } = await admin.auth.admin.updateUserById(id, { ban_duration: BAN_FOREVER });
   if (e1) return { error: e1.message };
   const { error: e2 } = await admin.from('profiles').update({ ativo: false }).eq('id', id).eq('empresa_id', empresaId);
-  if (e2) return { error: e2.message };
+  if (e2) {
+    // 2ª escrita falhou: reverte o ban pra não deixar estado inconsistente (login bloqueado
+    // mas UI mostrando "Ativo", e o hub herdaria essa divergência pelo sync).
+    await admin.auth.admin.updateUserById(id, { ban_duration: 'none' }).catch(() => {});
+    return { error: e2.message };
+  }
   return { ok: true };
 }
 
@@ -35,6 +40,10 @@ export async function reativarColaborador(
   const { error: e1 } = await admin.auth.admin.updateUserById(id, { ban_duration: 'none' });
   if (e1) return { error: e1.message };
   const { error: e2 } = await admin.from('profiles').update({ ativo: true }).eq('id', id).eq('empresa_id', empresaId);
-  if (e2) return { error: e2.message };
+  if (e2) {
+    // 2ª escrita falhou: re-bane pra manter consistência (senão login liberado mas UI "Inativo").
+    await admin.auth.admin.updateUserById(id, { ban_duration: BAN_FOREVER }).catch(() => {});
+    return { error: e2.message };
+  }
   return { ok: true };
 }

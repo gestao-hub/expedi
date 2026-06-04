@@ -61,7 +61,7 @@ export async function criarColaboradorAction(input: unknown) {
   const r = await criarColaborador(createAdminClient(), who.empresaId, parsed.data);
   if ('error' in r) return r;
   revalidatePath('/admin/usuarios');
-  return { ok: true as const };
+  return { ok: true as const, aviso: r.aviso };
 }
 
 export async function desativarColaboradorAction(input: unknown) {

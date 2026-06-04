@@ -47,6 +47,7 @@ export function ColaboradorForm() {
       if ('error' in r) toast.error(r.error);
       else {
         toast.success('Colaborador adicionado');
+        if (r.aviso) toast.warning(r.aviso);
         setOpen(false);
         router.refresh();
       }

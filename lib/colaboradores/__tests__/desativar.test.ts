@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { desativarColaborador, reativarColaborador } from '../desativar';
 
 // Mock admin: select().eq().eq().maybeSingle() (checagem de empresa) + updateUserById + update().eq().eq()
-function mockAdmin(alvo: { id: string } | null) {
+function mockAdmin(alvo: { id: string } | null, opts: { updateError?: string } = {}) {
   const calls: { bans: { id: string; ban?: string }[]; updates: Record<string, unknown>[] } = {
     bans: [], updates: [],
   };
@@ -22,7 +22,7 @@ function mockAdmin(alvo: { id: string } | null) {
         async maybeSingle() { return { data: alvo }; },
         update(patch: Record<string, unknown>) {
           calls.updates.push(patch);
-          return { eq: () => ({ eq: async () => ({ error: null }) }) };
+          return { eq: () => ({ eq: async () => ({ error: opts.updateError ? { message: opts.updateError } : null }) }) };
         },
       };
       return builder;
@@ -47,6 +47,13 @@ describe('desativarColaborador', () => {
     expect(r).toEqual({ error: 'Colaborador não encontrado nesta empresa' });
     expect(calls.bans).toHaveLength(0);
   });
+  it('falha ao gravar ativo → reverte o ban (rollback) e retorna erro', async () => {
+    const { admin, calls } = mockAdmin({ id: 'U1' }, { updateError: 'boom' });
+    const r = await desativarColaborador(admin, { id: 'U1', empresaId: 'E1' });
+    expect('error' in r && r.error).toBe('boom');
+    // 1º ban perpétuo, depois rollback com 'none'
+    expect(calls.bans.map((b) => b.ban)).toEqual(['876000h', 'none']);
+  });
 });
 
 describe('reativarColaborador', () => {
@@ -56,5 +63,12 @@ describe('reativarColaborador', () => {
     expect(r).toEqual({ ok: true });
     expect(calls.bans[0].ban).toBe('none');
     expect(calls.updates[0]).toEqual({ ativo: true });
+  });
+  it('falha ao gravar ativo → re-bane (rollback) e retorna erro', async () => {
+    const { admin, calls } = mockAdmin({ id: 'U1' }, { updateError: 'boom' });
+    const r = await reativarColaborador(admin, { id: 'U1', empresaId: 'E1' });
+    expect('error' in r && r.error).toBe('boom');
+    // 1º unban, depois rollback re-banindo
+    expect(calls.bans.map((b) => b.ban)).toEqual(['none', '876000h']);
   });
 });

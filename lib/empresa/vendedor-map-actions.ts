@@ -3,6 +3,7 @@
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { createClient } from '@/lib/supabase/server';
+import { isHub } from '@/lib/runtime';
 
 const mapSchema = z.object({
   empresa_id: z.uuid(),
@@ -25,6 +26,9 @@ async function isPlatformAdmin(): Promise<boolean> {
 export async function salvarVendedorMapAction(
   input: VendedorMapInput,
 ): Promise<{ ok: true } | { error: string }> {
+  // hiper_vendedor_map é tabela down-only (só desce da nuvem). Gravar no hub ilharia
+  // (seria sobrescrito no próximo pull) — o mapeamento é feito na nuvem, igual aos colaboradores.
+  if (isHub()) return { error: 'O mapeamento de vendedores é feito no Exped na nuvem.' };
   if (!(await isPlatformAdmin())) return { error: 'Apenas o operador da plataforma' };
   const parsed = mapSchema.safeParse(input);
   if (!parsed.success) return { error: parsed.error.issues[0]?.message ?? 'Dados inválidos' };
