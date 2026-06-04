@@ -1,5 +1,6 @@
 'use server';
 
+import { revalidateTag } from 'next/cache';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { novaEmpresaSchema, type NovaEmpresaInput } from '@/lib/validators/empresa';
@@ -141,5 +142,7 @@ export async function salvarEmpresaConfigAction(
     .update({ usa_os: cfg.usa_os, ativo: cfg.ativo, logo_url: norm(cfg.logo_url), cor_primaria: cor })
     .eq('id', empresaId);
   if (error) return { error: error.message };
+  // Invalida o cache da config (getEmpresaConfigCached) — senão a marca/usa_os ficam velhos até 10min.
+  revalidateTag(`empresa-${empresaId}`, 'max');
   return { ok: true };
 }
