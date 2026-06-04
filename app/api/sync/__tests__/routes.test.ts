@@ -13,6 +13,22 @@ const fakeDb = {
   findCanonical: vi.fn(),
   findCanonicalGlobal: vi.fn(async (): Promise<Record<string, unknown> | null> => null),
   parentBelongsToEmpresa: vi.fn(),
+  // Versões em lote: delegam aos mocks per-row acima (mantém os setups dos testes válidos).
+  findCanonicalMany: vi.fn(async (table: unknown, empresaId: unknown, pks: unknown[]) => {
+    const m = new Map<string, Record<string, unknown>>();
+    for (const pk of pks) {
+      const r = await fakeDb.findCanonical(table, empresaId, pk);
+      if (r) m.set(String(pk), r as Record<string, unknown>);
+    }
+    return m;
+  }),
+  parentsInEmpresa: vi.fn(async (parentTable: unknown, parentIds: unknown[], empresaId: unknown) => {
+    const s = new Set<string>();
+    for (const id of parentIds) {
+      if (await fakeDb.parentBelongsToEmpresa(parentTable, id, empresaId)) s.add(String(id));
+    }
+    return s;
+  }),
   upsertRaw: vi.fn(),
   setSyncReplica: vi.fn(async () => {}),
   selectAuthUsers: vi.fn(async (): Promise<Record<string, unknown>[]> => []),
