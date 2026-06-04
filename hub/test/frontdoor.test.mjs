@@ -1,6 +1,11 @@
 import { describe, it, expect } from 'vitest';
 import http from 'node:http';
+import https from 'node:https';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { pickFrontdoorTarget, startFrontdoor } from '../frontdoor.mjs';
+
+const FIXTURES = path.join(path.dirname(fileURLToPath(import.meta.url)), 'fixtures');
 
 const P = { app: 3000, gateway: 54320, events: 54350 };
 
@@ -43,5 +48,22 @@ describe('startFrontdoor (proxy)', () => {
     expect(await get(port, '/rest/v1/pedidos')).toBe('GW:/rest/v1/pedidos');
     expect(await get(port, '/avisos?empresa=1')).toBe('EV:/avisos?empresa=1');
     fd.close(); app.close(); gw.close(); ev.close();
+  });
+
+  it('com cert no certDir → termina TLS (https) e proxia', async () => {
+    const app = upstream('APP');
+    const ports = { app: app.address().port, gateway: 1, events: 1 };
+    const fd = startFrontdoor({ port: 0, ports, certDir: FIXTURES });
+    await new Promise((r) => fd.on('listening', r));
+    const port = fd.address().port;
+    const body = await new Promise((resolve, reject) => {
+      https
+        .get({ host: '127.0.0.1', port, path: '/login', rejectUnauthorized: false }, (r) => {
+          let b = ''; r.on('data', (d) => (b += d)); r.on('end', () => resolve(b));
+        })
+        .on('error', reject);
+    });
+    expect(body).toBe('APP:/login');
+    fd.close(); app.close();
   });
 });
