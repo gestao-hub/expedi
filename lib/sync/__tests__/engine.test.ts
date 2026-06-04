@@ -349,6 +349,15 @@ describe('runPush', () => {
     await expect(runPush(db, 'E1', { clientes: rows })).rejects.toMatchObject({ status: 413 });
   });
 
+  it('rejeita lote com PK duplicada (ambíguo pra pré-busca em lote)', async () => {
+    const { db } = makeDb();
+    const rows = [
+      { id: 'dup', empresa_id: 'E1', field_updated_at: {} },
+      { id: 'dup', empresa_id: 'E1', field_updated_at: {} },
+    ];
+    await expect(runPush(db, 'E1', { pedidos: rows })).rejects.toMatchObject({ status: 422 });
+  });
+
   it('push com pré-busca: merge da canônica existente + insert da nova (mesmas linhas)', async () => {
     const empresa = 'E1';
     const { db } = makeDb({

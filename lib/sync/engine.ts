@@ -134,6 +134,17 @@ export async function runPush(
     if (!t) throw new PushError(422, `Tabela desconhecida: ${name}`);
     if (t.dir === 'down') throw new PushError(403, `Tabela read-only (down): ${name}`);
     if (rows.length > PUSH_LIMIT) throw new PushError(413, `Lote acima de ${PUSH_LIMIT} linhas: ${name}`);
+    // PK duplicada no MESMO lote é ambígua pra pré-busca em lote (a 2ª ocorrência leria a
+    // canônica estática, não a 1ª recém-gravada → INSERT em vez de MERGE). O hub legítimo
+    // nunca emite isso (PK única na origem); rejeita payload forjado/buggy em vez de mesclar errado.
+    const seenPk = new Set<string>();
+    for (const r of rows) {
+      const pk = r[t.pk];
+      if (pk == null) continue;
+      const k = String(pk);
+      if (seenPk.has(k)) throw new PushError(422, `${name}: PK duplicada no lote: ${k}`);
+      seenPk.add(k);
+    }
   }
 
   const tables: Record<string, Row[]> = {};
