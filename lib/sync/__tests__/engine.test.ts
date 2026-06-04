@@ -348,6 +348,30 @@ describe('runPush', () => {
     const rows = Array.from({ length: 501 }, (_, i) => ({ id: `c${i}`, field_updated_at: {} }));
     await expect(runPush(db, 'E1', { clientes: rows })).rejects.toMatchObject({ status: 413 });
   });
+
+  it('push com pré-busca: merge da canônica existente + insert da nova (mesmas linhas)', async () => {
+    const empresa = 'E1';
+    const { db } = makeDb({
+      pedidos: [
+        { id: 'p1', empresa_id: empresa, cliente_nome: 'Antigo', updated_at: '2026-01-01T00:00:00Z', field_updated_at: {} },
+      ],
+    });
+    const incoming = {
+      pedidos: [
+        {
+          id: 'p1', empresa_id: empresa, cliente_nome: 'Novo', updated_at: '2026-02-01T00:00:00Z',
+          field_updated_at: { cliente_nome: '2026-02-01T00:00:00Z' },
+        },
+        {
+          id: 'p2', empresa_id: empresa, cliente_nome: 'Outro', updated_at: '2026-02-01T00:00:00Z',
+          field_updated_at: { cliente_nome: '2026-02-01T00:00:00Z' },
+        },
+      ],
+    };
+    const r = await runPush(db, empresa, incoming);
+    expect(r.tables.pedidos.map((x) => x.id).sort()).toEqual(['p1', 'p2']);
+    expect(r.tables.pedidos.find((x) => x.id === 'p1')!.cliente_nome).toBe('Novo');
+  });
 });
 
 describe('constants', () => {

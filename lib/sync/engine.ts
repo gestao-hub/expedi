@@ -146,6 +146,14 @@ export async function runPush(
       const t = SYNC_TABLES.find((x) => x.name === name)!;
       const result: Row[] = [];
 
+      // Pré-busca em lote (leitura) — NÃO altera a semântica de merge abaixo. Troca
+      // N queries (1 por linha) por ~2 queries por tabela do lote.
+      const pks = rows.map((r) => r[t.pk]).filter((x) => x != null);
+      const canonMap = await db.findCanonicalMany(t, empresaId, pks);
+      const validParents = t.parent
+        ? await db.parentsInEmpresa(t.parent.table, rows.map((r) => r[t.parent!.fk]), empresaId)
+        : new Set<string>();
+
       for (const raw of rows) {
         const row: Row = { ...raw };
 
@@ -158,14 +166,14 @@ export async function runPush(
           if (parentId == null) {
             throw new PushError(422, `${name}.${t.parent.fk} ausente`);
           }
-          const ok = await db.parentBelongsToEmpresa(t.parent.table, parentId, empresaId);
+          const ok = validParents.has(String(parentId));
           if (!ok) {
             throw new PushError(403, `${name}: pai ${t.parent.fk}=${String(parentId)} fora do escopo da empresa`);
           }
         }
 
         const pkVal = row[t.pk];
-        const canonica = pkVal != null ? await db.findCanonical(t, empresaId, pkVal) : null;
+        const canonica = pkVal != null ? (canonMap.get(String(pkVal)) ?? null) : null;
 
         let toWrite: Row;
         if (canonica) {
