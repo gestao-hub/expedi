@@ -1157,6 +1157,7 @@ export type Database = {
         Args: { p_limit: number }
         Returns: { cliente_nome: string; total: number; pedidos: number }[]
       }
+      admin_tempo_medio_horas: { Args: never; Returns: number }
       historico_kpis: {
         Args: never
         Returns: { pedidos_finalizados: number; valor_faturado: number; clientes_unicos: number }[]
@@ -1184,6 +1185,14 @@ export type Database = {
       sync_auth_users: {
         Args: { p_cursor: string; p_empresa: string; p_limit: number }
         Returns: Json[]
+      }
+      sync_children_changed: {
+        Args: { p_table: string; p_empresa: string; p_cursor: string; p_limit: number }
+        Returns: Json[]
+      }
+      sync_parents_in_empresa: {
+        Args: { p_table: string; p_ids: string[]; p_empresa: string }
+        Returns: string[]
       }
       sync_parent_in_empresa: {
         Args: { p_empresa: string; p_id: string; p_table: string }
