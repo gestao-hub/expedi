@@ -1,7 +1,7 @@
 import { createServerClient } from '@supabase/ssr';
 import { NextResponse, type NextRequest } from 'next/server';
 import type { Database } from '@/lib/types/database';
-import { supabaseUrl, supabaseAnonKey } from './env';
+import { supabaseUrl, supabaseAnonKey, SUPABASE_COOKIE_NAME } from './env';
 
 /**
  * Refresh do JWT + roteamento por role.
@@ -16,6 +16,7 @@ export async function updateSession(request: NextRequest) {
     supabaseUrl(),
     supabaseAnonKey(),
     {
+      cookieOptions: { name: SUPABASE_COOKIE_NAME },
       cookies: {
         getAll: () => request.cookies.getAll(),
         setAll: (toSet) => {

@@ -1,7 +1,7 @@
 import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import type { Database } from '@/lib/types/database';
-import { supabaseUrl, supabaseAnonKey, supabaseServiceKey } from './env';
+import { supabaseUrl, supabaseAnonKey, supabaseServiceKey, SUPABASE_COOKIE_NAME } from './env';
 
 /**
  * Cliente Supabase para Server Components, Route Handlers e Server Actions.
@@ -13,6 +13,7 @@ export async function createClient() {
     supabaseUrl(),
     supabaseAnonKey(),
     {
+      cookieOptions: { name: SUPABASE_COOKIE_NAME },
       cookies: {
         getAll: () => cookieStore.getAll(),
         setAll: (toSet) => {

@@ -1,5 +1,6 @@
 import { createBrowserClient } from '@supabase/ssr';
 import type { Database } from '@/lib/types/database';
+import { SUPABASE_COOKIE_NAME } from './env';
 
 /**
  * Cliente Supabase para uso em Client Components e código que roda no browser.
@@ -24,5 +25,7 @@ export function createClient() {
     (typeof window !== 'undefined' ? (window as Window & { __SUPABASE_ANON_KEY__?: string }).__SUPABASE_ANON_KEY__ : '') ||
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
     '';
-  return createBrowserClient<Database>(url, key);
+  return createBrowserClient<Database>(url, key, {
+    cookieOptions: { name: SUPABASE_COOKIE_NAME },
+  });
 }
